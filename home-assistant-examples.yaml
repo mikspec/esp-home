@@ -236,35 +236,54 @@ automation:
           title: "Garage WiFi Alert"
 
 # ----------------------------------------------
-# Binary Sensor Template Examples
+# Template Sensor Examples (Modern Home Assistant)
 # ----------------------------------------------
-binary_sensor:
-  # Create a "garage door has been open too long" sensor
-  - platform: template
-    sensors:
-      garage_open_too_long:
-        friendly_name: "Garage Open Too Long"
-        device_class: problem
-        value_template: >
-          {{ is_state('cover.garage_gate', 'open') and
-             (as_timestamp(now()) - as_timestamp(states.cover.garage_gate.last_changed)) > 600 }}
+# Add these under "template:" in configuration.yaml or via UI
+# For YAML configuration, use the modern template format:
+#
+# template:
+#   - binary_sensor:
+#       - name: "Garage Open Too Long"
+#         device_class: problem
+#         state: >
+#           {{ is_state('cover.garage_gate', 'open') and
+#              (as_timestamp(now()) - as_timestamp(states.cover.garage_gate.last_changed)) > 600 }}
+#
+#   - sensor:
+#       - name: "Garage Door Open Duration"
+#         unit_of_measurement: "minutes"
+#         state: >
+#           {% if is_state('cover.garage_gate', 'open') %}
+#             {{ ((as_timestamp(now()) - as_timestamp(states.cover.garage_gate.last_changed)) / 60) | round(0) }}
+#           {% else %}
+#             0
+#           {% endif %}
 
-# ----------------------------------------------
-# Sensor Template Examples
-# ----------------------------------------------
-sensor:
-  # Track how long garage has been open
-  - platform: template
-    sensors:
-      garage_door_open_duration:
-        friendly_name: "Garage Door Open Duration"
-        unit_of_measurement: "minutes"
-        value_template: >
-          {% if is_state('cover.garage_gate', 'open') %}
-            {{ ((as_timestamp(now()) - as_timestamp(states.cover.garage_gate.last_changed)) / 60) | round(0) }}
-          {% else %}
-            0
-          {% endif %}
+# Legacy format (deprecated but still works in older HA versions)
+# Uncomment if using Home Assistant < 2021.4:
+#
+# binary_sensor:
+#   - platform: template
+#     sensors:
+#       garage_open_too_long:
+#         friendly_name: "Garage Open Too Long"
+#         device_class: problem
+#         value_template: >
+#           {{ is_state('cover.garage_gate', 'open') and
+#              (as_timestamp(now()) - as_timestamp(states.cover.garage_gate.last_changed)) > 600 }}
+#
+# sensor:
+#   - platform: template
+#     sensors:
+#       garage_door_open_duration:
+#         friendly_name: "Garage Door Open Duration"
+#         unit_of_measurement: "minutes"
+#         value_template: >
+#           {% if is_state('cover.garage_gate', 'open') %}
+#             {{ ((as_timestamp(now()) - as_timestamp(states.cover.garage_gate.last_changed)) / 60) | round(0) }}
+#           {% else %}
+#             0
+#           {% endif %}
 
 # ----------------------------------------------
 # Script Examples

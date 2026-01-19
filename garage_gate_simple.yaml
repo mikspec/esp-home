@@ -58,7 +58,10 @@ binary_sensor:
       - switch.turn_off: gate_relay
 
 # Relay to control the garage gate
-# GPIO3 (RX) for ESP-01 - Note: This disables serial logging!
+# GPIO3 (RX) for ESP-01 - WARNING: This disables serial logging!
+# After first upload via USB, you won't be able to see logs via serial.
+# Use WiFi logs instead: esphome logs garage_gate_simple.yaml
+# Alternative: Use GPIO1 (TX) or add external pins via I2C expander
 switch:
   - platform: gpio
     id: gate_relay

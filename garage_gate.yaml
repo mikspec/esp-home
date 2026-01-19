@@ -31,7 +31,8 @@ ota:
 web_server:
   port: 80
 
-# Status LED (optional - uses built-in LED on most ESP8266 boards)
+# Status LED (optional - uses built-in LED on NodeMCU)
+# GPIO2 (D4) is the built-in LED on NodeMCU boards
 status_led:
   pin:
     number: GPIO2

@@ -503,6 +503,11 @@ logger:
 esphome logs garage_gate.yaml --device /dev/ttyUSB0
 ```
 
+**Note for ESP-01 users:** If using `garage_gate_simple.yaml` with GPIO3 (RX pin) for relay, serial logging is disabled. Use WiFi logs instead:
+```bash
+esphome logs garage_gate_simple.yaml
+```
+
 ### Check Component Status
 
 ```yaml
