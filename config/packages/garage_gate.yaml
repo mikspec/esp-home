@@ -1,18 +1,56 @@
-# Home Assistant Automation Examples for Garage Gate
+# Garage Gate Package
+# This package contains all automations, scripts, and helpers for the garage gate
+# To use: Add this to your configuration.yaml:
+#   homeassistant:
+#     packages:
+#       garage_gate: !include packages/garage_gate.yaml
 
-# These automations can be added to your Home Assistant configuration.yaml
-# or through the UI (Settings -> Automations & Scenes -> Create Automation)
+# ----------------------------------------------
+# Template Sensors
+# ----------------------------------------------
+template:
+  - binary_sensor:
+      - name: "Garage Open Too Long"
+        unique_id: garage_open_too_long
+        device_class: problem
+        state: >
+          {{ is_state('cover.garage_gate_garage_gate', 'open') and
+             (as_timestamp(now()) - as_timestamp(states.cover.garage_gate_garage_gate.last_changed)) > 600 }}
 
+  - sensor:
+      - name: "Garage Door Open Duration"
+        unique_id: garage_door_open_duration
+        unit_of_measurement: "minutes"
+        state: >
+          {% if is_state('cover.garage_gate_garage_gate', 'open') %}
+            {{ ((as_timestamp(now()) - as_timestamp(states.cover.garage_gate_garage_gate.last_changed)) / 60) | round(0) }}
+          {% else %}
+            0
+          {% endif %}
+
+# ----------------------------------------------
+# Input Booleans
+# ----------------------------------------------
+input_boolean:
+  garage_auto_close_enabled:
+    name: "Enable Auto-Close Garage"
+    icon: mdi:garage-variant
+
+  garage_notifications_enabled:
+    name: "Enable Garage Notifications"
+    icon: mdi:bell
+
+# ----------------------------------------------
+# Automations
+# ----------------------------------------------
 automation:
-  # ----------------------------------------------
   # Auto-close garage if left open for 10 minutes
-  # ----------------------------------------------
   - id: garage_auto_close
     alias: "Garage: Auto-close if left open"
     description: "Automatically close garage door if left open for 10 minutes"
     trigger:
       - platform: state
-        entity_id: cover.garage_gate
+        entity_id: cover.garage_gate_garage_gate
         to: "open"
         for:
           minutes: 10
@@ -24,21 +62,19 @@ automation:
     action:
       - service: cover.close_cover
         target:
-          entity_id: cover.garage_gate
+          entity_id: cover.garage_gate_garage_gate
       - service: notify.mobile_app_your_phone
         data:
           message: "Garage door was left open and has been automatically closed"
           title: "Garage Auto-Closed"
 
-  # ----------------------------------------------
   # Notification when garage opens
-  # ----------------------------------------------
   - id: garage_opened_notification
     alias: "Garage: Notify when opened"
     description: "Send notification when garage door opens"
     trigger:
       - platform: state
-        entity_id: cover.garage_gate
+        entity_id: cover.garage_gate_garage_gate
         to: "open"
     action:
       - service: notify.mobile_app_your_phone
@@ -54,15 +90,13 @@ automation:
             push:
               interruption-level: time-sensitive
 
-  # ----------------------------------------------
   # Notification when garage closes
-  # ----------------------------------------------
   - id: garage_closed_notification
     alias: "Garage: Notify when closed"
     description: "Send notification when garage door closes"
     trigger:
       - platform: state
-        entity_id: cover.garage_gate
+        entity_id: cover.garage_gate_garage_gate
         to: "closed"
     action:
       - service: notify.mobile_app_your_phone
@@ -70,9 +104,7 @@ automation:
           message: "Garage door has been closed"
           title: "Garage Closed"
 
-  # ----------------------------------------------
   # Handle notification action - close garage
-  # ----------------------------------------------
   - id: garage_notification_action_close
     alias: "Garage: Handle notification action"
     description: "Close garage when notification action is pressed"
@@ -84,11 +116,9 @@ automation:
     action:
       - service: cover.close_cover
         target:
-          entity_id: cover.garage_gate
+          entity_id: cover.garage_gate_garage_gate
 
-  # ----------------------------------------------
   # Alert if garage left open when leaving home
-  # ----------------------------------------------
   - id: garage_open_leaving_home
     alias: "Garage: Alert when leaving with door open"
     description: "Alert if garage is open when everyone leaves"
@@ -98,7 +128,7 @@ automation:
         to: "not_home"
     condition:
       - condition: state
-        entity_id: cover.garage_gate
+        entity_id: cover.garage_gate_garage_gate
         state: "open"
     action:
       - service: notify.mobile_app_your_phone
@@ -115,9 +145,7 @@ automation:
             channel: alarm_stream
             importance: high
 
-  # ----------------------------------------------
   # Auto-open garage when arriving home (geofence)
-  # ----------------------------------------------
   - id: garage_auto_open_arriving
     alias: "Garage: Auto-open when arriving home"
     description: "Open garage door when arriving home (optional - be careful!)"
@@ -128,7 +156,7 @@ automation:
     condition:
       # Only if garage is closed
       - condition: state
-        entity_id: cover.garage_gate
+        entity_id: cover.garage_gate_garage_gate
         state: "closed"
       # Only during certain hours
       - condition: time
@@ -144,11 +172,9 @@ automation:
           seconds: 2
       - service: cover.open_cover
         target:
-          entity_id: cover.garage_gate
+          entity_id: cover.garage_gate_garage_gate
 
-  # ----------------------------------------------
   # Daily reminder if garage is open
-  # ----------------------------------------------
   - id: garage_daily_status_check
     alias: "Garage: Daily status reminder"
     description: "Send daily reminder at bedtime if garage is open"
@@ -157,7 +183,7 @@ automation:
         at: "22:00:00"
     condition:
       - condition: state
-        entity_id: cover.garage_gate
+        entity_id: cover.garage_gate_garage_gate
         state: "open"
     action:
       - service: notify.mobile_app_your_phone
@@ -169,15 +195,13 @@ automation:
               - action: "CLOSE_GARAGE"
                 title: "Close It"
 
-  # ----------------------------------------------
   # Blink lights when garage opens (visual indicator)
-  # ----------------------------------------------
   - id: garage_visual_indicator
     alias: "Garage: Blink lights when opened"
     description: "Flash garage lights 3 times when door opens"
     trigger:
       - platform: state
-        entity_id: cover.garage_gate
+        entity_id: cover.garage_gate_garage_gate
         to: "open"
     action:
       - repeat:
@@ -194,15 +218,13 @@ automation:
             - delay:
                 milliseconds: 500
 
-  # ----------------------------------------------
   # Log garage activity to file
-  # ----------------------------------------------
   - id: garage_activity_logger
     alias: "Garage: Log all activity"
     description: "Log garage door state changes"
     trigger:
       - platform: state
-        entity_id: cover.garage_gate
+        entity_id: cover.garage_gate_garage_gate
     action:
       - service: notify.persistent_notification
         data:
@@ -211,9 +233,7 @@ automation:
             {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
           title: "Garage Activity Log"
 
-  # ----------------------------------------------
   # Weekly WiFi signal check
-  # ----------------------------------------------
   - id: garage_wifi_check
     alias: "Garage: Weekly WiFi signal check"
     description: "Alert if WiFi signal is poor"
@@ -225,68 +245,43 @@ automation:
         weekday:
           - sun
       - condition: numeric_state
-        entity_id: sensor.garage_gate_wifi_signal
+        entity_id: sensor.garage_gate_garage_gate_wifi_signal
         below: -75
     action:
       - service: notify.mobile_app_your_phone
         data:
           message: >
             Garage controller WiFi signal is weak: 
-            {{ states('sensor.garage_gate_wifi_signal') }} dBm
+            {{ states('sensor.garage_gate_garage_gate_wifi_signal') }} dBm
           title: "Garage WiFi Alert"
 
-# ----------------------------------------------
-# Template Sensor Examples (Modern Home Assistant)
-# ----------------------------------------------
-# Add these under "template:" in configuration.yaml or via UI
-# For YAML configuration, use the modern template format:
-#
-# template:
-#   - binary_sensor:
-#       - name: "Garage Open Too Long"
-#         device_class: problem
-#         state: >
-#           {{ is_state('cover.garage_gate', 'open') and
-#              (as_timestamp(now()) - as_timestamp(states.cover.garage_gate.last_changed)) > 600 }}
-#
-#   - sensor:
-#       - name: "Garage Door Open Duration"
-#         unit_of_measurement: "minutes"
-#         state: >
-#           {% if is_state('cover.garage_gate', 'open') %}
-#             {{ ((as_timestamp(now()) - as_timestamp(states.cover.garage_gate.last_changed)) / 60) | round(0) }}
-#           {% else %}
-#             0
-#           {% endif %}
-
-# Legacy format (deprecated but still works in older HA versions)
-# Uncomment if using Home Assistant < 2021.4:
-#
-# binary_sensor:
-#   - platform: template
-#     sensors:
-#       garage_open_too_long:
-#         friendly_name: "Garage Open Too Long"
-#         device_class: problem
-#         value_template: >
-#           {{ is_state('cover.garage_gate', 'open') and
-#              (as_timestamp(now()) - as_timestamp(states.cover.garage_gate.last_changed)) > 600 }}
-#
-# sensor:
-#   - platform: template
-#     sensors:
-#       garage_door_open_duration:
-#         friendly_name: "Garage Door Open Duration"
-#         unit_of_measurement: "minutes"
-#         value_template: >
-#           {% if is_state('cover.garage_gate', 'open') %}
-#             {{ ((as_timestamp(now()) - as_timestamp(states.cover.garage_gate.last_changed)) / 60) | round(0) }}
-#           {% else %}
-#             0
-#           {% endif %}
+  # Sync HA helper with ESPHome auto-close switch
+  - id: garage_sync_auto_close_to_esphome
+    alias: "Garage: Sync auto-close helper to ESPHome"
+    trigger:
+      - platform: state
+        entity_id: input_boolean.garage_auto_close_enabled
+    action:
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: input_boolean.garage_auto_close_enabled
+                state: "on"
+            sequence:
+              - service: switch.turn_on
+                target:
+                  entity_id: switch.garage_gate_garage_gate_auto_close
+          - conditions:
+              - condition: state
+                entity_id: input_boolean.garage_auto_close_enabled
+                state: "off"
+            sequence:
+              - service: switch.turn_off
+                target:
+                  entity_id: switch.garage_gate_garage_gate_auto_close
 
 # ----------------------------------------------
-# Script Examples
+# Scripts
 # ----------------------------------------------
 script:
   # Close garage with confirmation
@@ -301,7 +296,7 @@ script:
           seconds: 5
       - service: cover.close_cover
         target:
-          entity_id: cover.garage_gate
+          entity_id: cover.garage_gate_garage_gate
       - delay:
           seconds: 2
       - service: notify.mobile_app_your_phone
@@ -309,79 +304,41 @@ script:
           message: "Garage door closed"
           title: "Garage Closed"
 
-  # Toggle garage (smart)
+  # Toggle garage (smart) using cover
   garage_smart_toggle:
     alias: "Garage Smart Toggle"
     sequence:
       - choose:
           - conditions:
               - condition: state
-                entity_id: cover.garage_gate
+                entity_id: cover.garage_gate_garage_gate
                 state: "open"
             sequence:
               - service: cover.close_cover
                 target:
-                  entity_id: cover.garage_gate
+                  entity_id: cover.garage_gate_garage_gate
           - conditions:
               - condition: state
-                entity_id: cover.garage_gate
+                entity_id: cover.garage_gate_garage_gate
                 state: "closed"
             sequence:
               - service: cover.open_cover
                 target:
-                  entity_id: cover.garage_gate
+                  entity_id: cover.garage_gate_garage_gate
 
-# ----------------------------------------------
-# Input Boolean for Automation Control
-# ----------------------------------------------
-input_boolean:
-  garage_auto_close_enabled:
-    name: "Enable Auto-Close Garage"
-    icon: mdi:garage-variant
+  # Trigger via ESPHome gate_action (anti-replay safe)
+  garage_gate_action_open:
+    alias: "Garage Gate Action Open"
+    sequence:
+      - service: esphome.garage_gate_gate_action
+        data:
+          request_id: "{{ (now().timestamp() * 1000) | int }}"
+          action: "open"
 
-  garage_notifications_enabled:
-    name: "Enable Garage Notifications"
-    icon: mdi:bell
-
-# ----------------------------------------------
-# Lovelace Card Example (UI)
-# ----------------------------------------------
-# Add this to your Lovelace dashboard:
-#
-# type: vertical-stack
-# cards:
-#   - type: entities
-#     title: Garage Control
-#     entities:
-#       - entity: cover.garage_gate
-#       - entity: binary_sensor.garage_gate_position_sensor
-#       - entity: switch.garage_gate_relay
-#       - entity: sensor.garage_gate_wifi_signal
-#       - entity: sensor.garage_door_open_duration
-#   - type: conditional
-#     conditions:
-#       - entity: binary_sensor.garage_open_too_long
-#         state: "on"
-#     card:
-#       type: markdown
-#       content: "⚠️ **Warning:** Garage has been open for over 10 minutes!"
-#   - type: horizontal-stack
-#     cards:
-#       - type: button
-#         entity: cover.garage_gate
-#         tap_action:
-#           action: call-service
-#           service: cover.open_cover
-#           target:
-#             entity_id: cover.garage_gate
-#         name: Open
-#         icon: mdi:garage-open
-#       - type: button
-#         entity: cover.garage_gate
-#         tap_action:
-#           action: call-service
-#           service: cover.close_cover
-#           target:
-#             entity_id: cover.garage_gate
-#         name: Close
-#         icon: mdi:garage
+  garage_gate_action_close:
+    alias: "Garage Gate Action Close"
+    sequence:
+      - service: esphome.garage_gate_gate_action
+        data:
+          request_id: "{{ (now().timestamp() * 1000) | int }}"
+          action: "close"

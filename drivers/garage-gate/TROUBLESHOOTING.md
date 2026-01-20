@@ -188,7 +188,7 @@ Relay Module GND -> GND
 # Verify correct pin number
 switch:
   - platform: gpio
-    pin: GPIO13  # D7 on NodeMCU
+    pin: GPIO5  # D1 on NodeMCU
 ```
 
 **Test Relay Manually:**
@@ -203,7 +203,7 @@ switch:
 switch:
   - platform: gpio
     pin:
-      number: GPIO13
+      number: GPIO5
       inverted: true  # Some relays are active-low
 ```
 
@@ -214,7 +214,7 @@ switch:
 switch:
   - platform: gpio
     pin:
-      number: GPIO13
+      number: GPIO5
       inverted: true  # Flip the logic
 ```
 
@@ -225,7 +225,7 @@ switch:
 binary_sensor:
   - platform: gpio
     pin:
-      number: GPIO12
+      number: GPIO4
       mode:
         input: true
         pullup: true  # Enable internal pull-up
@@ -236,7 +236,7 @@ binary_sensor:
 binary_sensor:
   - platform: gpio
     pin:
-      number: GPIO12
+      number: GPIO4
       inverted: true  # Active-low button
 ```
 

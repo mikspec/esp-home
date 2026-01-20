@@ -22,21 +22,11 @@
 ### NodeMCU v2 Pin Layout
 
 ```
-                     +-----------------+
-                     |    NodeMCU v2   |
-                     |                 |
-                     |  [USB]          |
-                     |                 |
-              3.3V --|RST          TX |-- GPIO1
-              GND  --|A0           RX |-- GPIO3
-Contactron ---|  --|D5 (GPIO14) D1  |-- GPIO5
-              |  --|D6 (GPIO12) D2  |-- GPIO4
-              |  --|D7 (GPIO13) D3  |-- GPIO0
-Button -------|  --|D8 (GPIO15) D4  |-- GPIO2 (LED)
-Relay --------|  --|3V3         GND |-- GND
-              +-----|5V          5V  |-------+-- 5V Power
-                     |                 |
-                     +-----------------+
+NodeMCU v2 relevant pins:
+- D1 (GPIO5)  -> Relay IN
+- D2 (GPIO4)  -> Button
+- D5 (GPIO14) -> Contactron
+- D4 (GPIO2)  -> Status LED (built-in)
 ```
 
 ### Connection Details
@@ -53,7 +43,7 @@ Note: Internal pull-up resistor is enabled in software
 
 #### 2. Button Wiring
 ```
-Button Pin 1 -----> GPIO12 (D6)
+Button Pin 1 -----> GPIO4 (D2)
 Button Pin 2 -----> GND
 
 Note: Internal pull-up resistor is enabled in software
@@ -66,7 +56,7 @@ Note: Internal pull-up resistor is enabled in software
 ```
 Relay VCC -----> 5V (from NodeMCU 5V pin or external 5V)
 Relay GND -----> GND
-Relay IN  -----> GPIO13 (D7)
+Relay IN  -----> GPIO5 (D1)
 ```
 
 **Load Connections (Motor Side):**
@@ -196,7 +186,7 @@ This allows both the ESP8266 and the original button to work.
 
 ### Relay Doesn't Click
 - Check 5V power supply to relay module
-- Verify GPIO13 connection
+- Verify GPIO5 connection
 - Test relay manually by connecting IN to GND
 
 ### Contactron Always Shows Same State

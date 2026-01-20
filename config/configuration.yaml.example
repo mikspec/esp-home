@@ -1,0 +1,34 @@
+# Home Assistant Configuration Example for Garage Gate
+# This shows how to integrate the garage gate package
+
+# Default config loads
+default_config:
+
+# ----------------------------------------------
+# RECOMMENDED: Use packages for clean organization
+# ----------------------------------------------
+# All garage gate automations, scripts, templates, and helpers
+# are organized in a single package file
+homeassistant:
+  packages:
+    garage_gate: !include packages/garage_gate.yaml
+
+# ----------------------------------------------
+# That's it! The package contains:
+# - Template sensors (Garage Open Too Long, Open Duration)
+# - Input booleans (enable/disable features)
+# - 10 automations (notifications, auto-close, geofence, etc.)
+# - 4 scripts (confirm close, smart toggle, gate_action calls)
+#
+# Note: Number helpers are NOT needed - ESPHome provides them directly:
+# - number.garage_gate_gate_relay_pulse_duration
+# - number.garage_gate_button_press_delay_action_1
+# - number.garage_gate_button_press_delay_action_2
+# - number.garage_gate_gate_auto_close_period_normal
+# - number.garage_gate_gate_auto_close_period_short
+#
+# Edit packages/garage_gate.yaml to customize automations
+# Replace notify.mobile_app_your_phone with your actual device
+# Replace person.your_name with your actual person entity
+# Replace light.garage_light with your actual garage light entity
+# ----------------------------------------------

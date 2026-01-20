@@ -1,0 +1,102 @@
+# Home Assistant Integration Examples for Garage Gate
+
+# ----------------------------------------------
+# IMPORTANT: Pre-built Package Available!
+# ----------------------------------------------
+# All automations, scripts, templates, and helpers are organized
+# in packages/garage_gate.yaml - just add to your configuration.yaml:
+#
+#   homeassistant:
+#     packages:
+#       garage_gate: !include packages/garage_gate.yaml
+#
+# Then customize the package file to your needs.
+# ----------------------------------------------
+
+# Below are additional examples and UI configurations:
+
+# ----------------------------------------------
+# Lovelace Dashboard Card Example
+# ----------------------------------------------
+# Add this to your Lovelace dashboard for garage control:
+
+lovelace_card_example:
+  type: vertical-stack
+cards:
+  - type: entities
+    title: Garage Control
+    entities:
+      - entity: cover.garage_gate_garage_gate
+      - entity: binary_sensor.garage_gate_garage_gate_position_sensor
+      - entity: switch.garage_gate_garage_gate_relay
+      - entity: switch.garage_gate_garage_gate_active
+      - entity: switch.garage_gate_garage_gate_auto_close
+      - entity: number.garage_gate_gate_relay_pulse_duration
+      - entity: number.garage_gate_button_press_delay_action_1
+      - entity: number.garage_gate_button_press_delay_action_2
+      - entity: number.garage_gate_gate_auto_close_period_normal
+      - entity: number.garage_gate_gate_auto_close_period_short
+      - entity: sensor.garage_gate_garage_gate_wifi_signal
+      - entity: sensor.garage_door_open_duration
+  - type: conditional
+    conditions:
+      - entity: binary_sensor.garage_open_too_long
+        state: "on"
+    card:
+      type: markdown
+      content: "⚠️ **Warning:** Garage has been open for over 10 minutes!"
+  - type: horizontal-stack
+    cards:
+      - type: button
+        entity: cover.garage_gate_garage_gate
+        tap_action:
+          action: call-service
+          service: cover.open_cover
+          target:
+            entity_id: cover.garage_gate_garage_gate
+        name: Open
+        icon: mdi:garage-open
+      - type: button
+        entity: cover.garage_gate_garage_gate
+        tap_action:
+          action: call-service
+          service: cover.close_cover
+          target:
+            entity_id: cover.garage_gate_garage_gate
+        name: Close
+        icon: mdi:garage
+# ----------------------------------------------
+# Available ESPHome Entities
+# ----------------------------------------------
+# The garage_gate device provides these entities:
+#
+# Cover:
+#   - cover.garage_gate_garage_gate
+#
+# Binary Sensors:
+#   - binary_sensor.garage_gate_garage_gate_position_sensor
+#   - binary_sensor.garage_gate_garage_gate_button
+#
+# Switches:
+#   - switch.garage_gate_garage_gate_active
+#   - switch.garage_gate_garage_gate_auto_close
+#   - switch.garage_gate_garage_gate_relay
+#
+# Numbers (configurable timings):
+#   - number.garage_gate_gate_relay_pulse_duration
+#   - number.garage_gate_button_press_delay_action_1
+#   - number.garage_gate_button_press_delay_action_2
+#   - number.garage_gate_gate_auto_close_period_normal
+#   - number.garage_gate_gate_auto_close_period_short
+#
+# Sensors:
+#   - sensor.garage_gate_garage_gate_wifi_signal
+#   - sensor.garage_gate_garage_gate_connected_ssid
+#   - sensor.garage_gate_garage_gate_ip_address
+#   - sensor.garage_gate_garage_gate_esphome_version
+#
+# Services:
+#   - esphome.garage_gate_gate_action
+#       Parameters:
+#         request_id: int (timestamp in milliseconds)
+#         action: string ("open", "close", "stop", "toggle")

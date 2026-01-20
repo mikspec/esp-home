@@ -30,7 +30,7 @@ Complete ESPHome implementation for ESP8266-based garage gate controller.
    - Basic functionality only
    - Lower memory footprint
 
-5. **[secrets.yaml.template](secrets.yaml.template)** - 🔐 Secrets template
+5. **[../config/secrets.yaml.template](../config/secrets.yaml.template)** - 🔐 Secrets template
    - Copy to `secrets.yaml`
    - Fill in WiFi credentials
    - API keys and passwords
@@ -81,16 +81,23 @@ Complete ESPHome implementation for ESP8266-based garage gate controller.
 
 ```
 esp-home/
-├── garage_gate.yaml              # Main ESPHome configuration (NodeMCU)
-├── garage_gate_simple.yaml       # Minimal configuration (ESP-01)
-├── secrets.yaml.template         # Template for credentials
-├── README.md                     # Main documentation
-├── QUICKSTART.md                 # Quick setup guide
-├── WIRING.md                     # Hardware wiring guide
-├── MIGRATION.md                  # C to ESPHome migration guide
-├── TROUBLESHOOTING.md            # Problem resolution
-├── home-assistant-examples.yaml  # HA automation examples
-└── INDEX.md                      # This file
+├── compose.yaml                   # Docker Compose configuration
+├── config/                        # ESPHome configurations
+│   ├── garage_gate.yaml           # Main ESPHome configuration (NodeMCU)
+│   ├── home-assistant-examples.yaml  # HA automation examples
+│   └── secrets.yaml.template      # Template for credentials
+├── drivers/                       # Driver documentation
+│   └── garage-gate/               # Garage gate documentation
+│       ├── gateEsp/               # Original C implementation
+│       │   ├── gate/              # Arduino sketch
+│       │   └── python/            # Python utilities
+│       ├── INDEX.md               # This file
+│       ├── MIGRATION.md           # C to ESPHome migration guide
+│       ├── QUICKSTART.md          # Quick setup guide
+│       ├── README.md              # Main documentation
+│       ├── TROUBLESHOOTING.md     # Problem resolution
+│       └── WIRING.md              # Hardware wiring guide
+└── LICENSE                        # Project license
 ```
 
 ## 🎯 Common Tasks
@@ -101,7 +108,7 @@ esp-home/
 pip3 install esphome
 
 # 2. Create secrets file
-cp secrets.yaml.template secrets.yaml
+cp ../config/secrets.yaml.template ../config/secrets.yaml
 nano secrets.yaml
 
 # 3. Flash ESP8266

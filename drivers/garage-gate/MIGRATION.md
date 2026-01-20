@@ -75,20 +75,20 @@ All of the above is replaced with YAML configuration:
 switch:
   - platform: gpio
     id: gate_relay
-    pin: GPIO13  # Same as RELAY_PIN
+    pin: GPIO5  # Same as RELAY_PIN
 
 binary_sensor:
   - platform: gpio
     id: gate_button
     pin:
-      number: GPIO12  # Same as BUTTON_PIN
+      number: GPIO4  # Same as BUTTON_PIN
       mode:
         input: true
         pullup: true
     on_press:
       # Same as triggerGate()
       - switch.turn_on: gate_relay
-      - delay: 500ms
+      - delay: 1000ms
       - switch.turn_off: gate_relay
 
   - platform: gpio
@@ -311,7 +311,7 @@ No equivalent C code needed!
 **Solution:** Add `inverted: true` to the pin configuration:
 ```yaml
 pin:
-  number: GPIO13
+  number: GPIO5
   inverted: true
 ```
 

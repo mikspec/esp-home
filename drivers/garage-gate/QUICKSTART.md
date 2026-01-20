@@ -22,7 +22,7 @@ esphome version
 
 ```bash
 # Copy template
-cp secrets.yaml.template secrets.yaml
+cp ../config/secrets.yaml.template ../config/secrets.yaml
 
 # Edit with your credentials (use any text editor)
 nano secrets.yaml
@@ -129,7 +129,7 @@ Edit garage_gate.yaml:
 switch:
   - platform: gpio
     pin:
-      number: GPIO13
+         number: GPIO5
       inverted: true  # Add this line
 ```
 
@@ -146,7 +146,7 @@ Open Home Assistant → Go to device → Toggle "Garage Gate Relay"
 Press physical button → Check logs:
 ```bash
 esphome logs garage_gate.yaml
-# Should see: "Button pressed - triggering gate relay"
+# Should see: "Button pressed"
 ```
 
 ### Test Contactron
@@ -161,8 +161,8 @@ Move magnet near reed switch → Check logs:
 
 ```
 D5 (GPIO14) -> Contactron
-D6 (GPIO12) -> Button
-D7 (GPIO13) -> Relay
+D2 (GPIO4) -> Button
+D1 (GPIO5) -> Relay
 ```
 
 ---

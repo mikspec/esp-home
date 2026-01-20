@@ -1,0 +1,15 @@
+services:
+  esphome:
+    container_name: esphome
+    image: ghcr.io/esphome/esphome
+    volumes:
+      - ./config:/config
+      - /etc/localtime:/etc/localtime:ro
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+    restart: always
+    privileged: true
+    network_mode: host
+    environment:
+      - USERNAME=cincin
+      - PASSWORD=EspHome89(
