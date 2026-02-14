@@ -83,8 +83,8 @@ ota:
     password: !secret ota_password
 
 # Web server for standalone access (optional)
-web_server:
-  port: 80
+#web_server:
+#  port: 80
 
 # Status LED (optional - uses built-in LED on NodeMCU)
 # GPIO2 (D4) is the built-in LED on NodeMCU boards
