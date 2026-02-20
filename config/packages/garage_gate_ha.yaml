@@ -1,0 +1,87 @@
+# Garage Gate Package
+# This package contains all automations, scripts, and helpers for the garage gate
+# To use: Add this to your configuration.yaml:
+#   homeassistant:
+#     packages:
+#       garage_gate: !include packages/garage_gate.yaml
+
+# ----------------------------------------------
+# Template Sensors
+# ----------------------------------------------
+template:
+  - binary_sensor:
+      - name: "Garage Open Too Long"
+        unique_id: garage_open_too_long
+        device_class: problem
+        state: >
+          {{ is_state('cover.garage_gate_garage_gate', 'open') and
+             (as_timestamp(now()) - as_timestamp(states.cover.garage_gate_garage_gate.last_changed)) > 600 }}
+
+  - sensor:
+      - name: "Garage Door Open Duration"
+        unique_id: garage_door_open_duration
+        unit_of_measurement: "minutes"
+        state: >
+          {% if is_state('cover.garage_gate_garage_gate', 'open') %}
+            {{ ((as_timestamp(now()) - as_timestamp(states.cover.garage_gate_garage_gate.last_changed)) / 60) | round(0) }}
+          {% else %}
+            0
+          {% endif %}
+
+# ----------------------------------------------
+# Automations
+# ----------------------------------------------
+automation:
+  # Notification if garage left open for 10 minutes
+  - id: garage_open_too_long_notification
+    alias: "Garage: Notification if left open"
+    description: "Notification when garage door left open for 10 minutes"
+    trigger:
+      - platform: state
+        entity_id: cover.garage_gate_garage_gate
+        to: "open"
+        for:
+          minutes: 10
+    #condition:
+    #  # Only auto-close during certain hours (optional)
+    #  - condition: time
+    #    after: "22:00:00"
+    #    before: "06:00:00"
+    action:
+      - service: notify.mobile_app_moto_g84_5g
+        data:
+          message: "Garage door was left open for 10 min" 
+          title: "Garage left open"
+  # Notification when garage opens
+  - id: garage_opened_notification
+    alias: "Garage: Notify when opened"
+    description: "Send notification when garage door opens"
+    trigger:
+      - platform: state
+        entity_id: cover.garage_gate_garage_gate
+        to: "open"
+    action:
+      - service: notify.mobile_app_moto_g84_5g
+        data:
+          target: pl.mikspec.gatebutton
+          message: "Garage door has been opened"
+          title: "Garage Opened"
+          data:
+            status: open
+
+  # Notification when garage closes
+  - id: garage_closed_notification
+    alias: "Garage: Notify when closed"
+    description: "Send notification when garage door closes"
+    trigger:
+      - platform: state
+        entity_id: cover.garage_gate_garage_gate
+        to: "closed"
+    action:
+      - service: notify.mobile_app_moto_g84_5g
+        data:
+          target: pl.mikspec.gatebutton
+          message: "Garage door has been closed"
+          title: "Garage Closed"
+          data:
+            status: closed

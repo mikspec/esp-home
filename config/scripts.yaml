@@ -1,0 +1,29 @@
+play_357:
+  alias: "Play Radio 357"
+  icon: mdi:radio
+  sequence:
+    - service: media_player.play_media
+      target:
+        entity_id: media_player.rpi_player
+      data:
+        media_content_id: "https://stream.radio357.pl"
+        media_content_type: music
+
+play_nowyswiat:
+  alias: "Play Radio Nowy Swiat"
+  icon: mdi:radio
+  sequence:
+    - service: media_player.play_media
+      target:
+        entity_id: media_player.rpi_player
+      data:
+        media_content_id: "http://stream.rcs.revma.com/ypqt40u0x1zuv"
+        media_content_type: music
+
+stop_radio:
+  alias: "Stop Radio"
+  icon: mdi:stop
+  sequence:
+    - service: media_player.media_stop
+      target:
+        entity_id: media_player.rpi_player
