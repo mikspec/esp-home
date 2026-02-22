@@ -50,7 +50,7 @@ automation:
     action:
       - service: notify.mobile_app_moto_g84_5g
         data:
-          message: "Garage door was left open for 10 min" 
+          message: "Garage door was left open for 10 min"
           title: "Garage left open"
   # Notification when garage opens
   - id: garage_opened_notification
@@ -63,7 +63,7 @@ automation:
     action:
       - service: notify.mobile_app_moto_g84_5g
         data:
-          target: pl.mikspec.gatebutton
+          target: pl.mikspec.homegate
           message: "Garage door has been opened"
           title: "Garage Opened"
           data:
@@ -80,7 +80,7 @@ automation:
     action:
       - service: notify.mobile_app_moto_g84_5g
         data:
-          target: pl.mikspec.gatebutton
+          target: pl.mikspec.homegate
           message: "Garage door has been closed"
           title: "Garage Closed"
           data:
