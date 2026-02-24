@@ -6,6 +6,16 @@
 #       garage_gate: !include packages/garage_gate.yaml
 
 # ----------------------------------------------
+# Notification Groups
+# ----------------------------------------------
+notify:
+  - name: all_phones
+    platform: group
+    services:
+      - service: mobile_app_moto_g84_5g
+      - service: mobile_app_moto_iwonka
+
+# ----------------------------------------------
 # Template Sensors
 # ----------------------------------------------
 template:
@@ -48,7 +58,7 @@ automation:
     #    after: "22:00:00"
     #    before: "06:00:00"
     action:
-      - service: notify.mobile_app_moto_g84_5g
+      - service: notify.all_phones
         data:
           message: "Garage door was left open for 10 min"
           title: "Garage left open"
@@ -61,7 +71,7 @@ automation:
         entity_id: cover.garage_gate_garage_gate
         to: "open"
     action:
-      - service: notify.mobile_app_moto_g84_5g
+      - service: notify.all_phones
         data:
           target: pl.mikspec.homegate
           message: "Garage door has been opened"
@@ -78,7 +88,7 @@ automation:
         entity_id: cover.garage_gate_garage_gate
         to: "closed"
     action:
-      - service: notify.mobile_app_moto_g84_5g
+      - service: notify.all_phones
         data:
           target: pl.mikspec.homegate
           message: "Garage door has been closed"
