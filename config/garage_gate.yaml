@@ -126,6 +126,10 @@ globals:
     type: int
     restore_value: false
     initial_value: "0"
+  - id: action_pending
+    type: bool
+    restore_value: false
+    initial_value: "false"
 
 script:
   - id: gate_relay_pulse
@@ -151,6 +155,7 @@ script:
           if (id(gate_contactron).state) {  // if currently open, we're closing
             id(open_gate_period_ms) = 0;
           }
+          id(action_pending) = true;
       - script.execute: gate_relay_pulse
 
 interval:
@@ -204,14 +209,26 @@ binary_sensor:
       then:
         - logger.log: "Gate is OPEN"
         - lambda: |-
+            // If action_pending is false, gate was opened externally (remote control)
+            if (!id(action_pending)) {
+              ESP_LOGI("gate", "Gate opened externally (remote control) - auto-close disabled");
+              id(last_action_source) = 2;  // 2 = external/remote control
+            }
+            id(action_pending) = false;
+            
             id(open_gate_timestamp_ms) = millis();
+            // Only enable auto-close for button press (source == 0)
             if (id(auto_close_enabled).state && id(open_gate_period_ms) == 0 && id(last_action_source) == 0) {
               id(open_gate_period_ms) = id(gate_open_period_normal).state;
+              ESP_LOGI("gate", "Auto-close enabled (button press)");
+            } else if (id(last_action_source) != 0) {
+              ESP_LOGI("gate", "Auto-close disabled (source: %d)", id(last_action_source));
             }
     on_release:
       then:
         - logger.log: "Gate is CLOSED"
         - lambda: |-
+            id(action_pending) = false;
             id(open_gate_timestamp_ms) = 0;
             id(open_gate_period_ms) = 0;
 
