@@ -1,5 +1,6 @@
 # Home Assistant Configuration Example for Garage Gate
 # This shows how to integrate the garage gate package
+# and irrigation scheduling package.
 
 # Default config loads
 default_config:
@@ -8,10 +9,11 @@ default_config:
 # RECOMMENDED: Use packages for clean organization
 # ----------------------------------------------
 # All garage gate automations, scripts, templates, and helpers
-# are organized in a single package file
+# plus irrigation automations and helpers are organized in package files
 homeassistant:
   packages:
     garage_gate: !include packages/garage_gate.yaml
+    irrigation: !include packages/irrigation_ha.yaml
 
 # ----------------------------------------------
 # That's it! The package contains:

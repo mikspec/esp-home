@@ -1,0 +1,251 @@
+esphome:
+  name: irrigation
+  friendly_name: irrigation
+  on_boot:
+    priority: -100
+    then:
+      - switch.turn_off: section_left
+      - switch.turn_off: section_right
+      - switch.turn_off: section_back
+      - switch.turn_off: section_lines
+      - switch.turn_off: pump_relay
+      - lambda: |-
+          id(active_section_started_ms) = 0;
+
+esp8266:
+  board: nodemcuv2
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  min_auth_mode: WPA2
+  ap:
+    ssid: "Irrigation Fallback"
+    password: !secret fallback_password
+
+logger:
+  level: DEBUG
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+  services:
+    - service: irrigation_all_off
+      then:
+        - script.execute: all_off_without_notification
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+# Web server for standalone access (optional)
+web_server:
+  port: 80
+
+globals:
+  - id: active_section_started_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+
+script:
+  - id: sync_pump_from_sections
+    mode: restart
+    then:
+      - lambda: |-
+          const bool any_section_active =
+              id(section_left).state ||
+              id(section_right).state ||
+              id(section_back).state ||
+              id(section_lines).state;
+
+          if (any_section_active) {
+            if (id(active_section_started_ms) == 0) {
+              id(active_section_started_ms) = millis();
+            }
+            if (!id(pump_relay).state) {
+              id(pump_relay).turn_on();
+            }
+          } else {
+            id(pump_off_if_idle).execute();
+          }
+
+  - id: pump_off_if_idle
+    mode: restart
+    then:
+      - delay: 1s
+      - lambda: |-
+          const bool any_section_active =
+              id(section_left).state ||
+              id(section_right).state ||
+              id(section_back).state ||
+              id(section_lines).state;
+
+          if (any_section_active) {
+            return;
+          }
+
+          id(active_section_started_ms) = 0;
+          if (id(pump_relay).state) {
+            id(pump_relay).turn_off();
+          }
+
+  - id: all_off_without_notification
+    mode: restart
+    then:
+      - script.stop: pump_off_if_idle
+      - switch.turn_off: section_left
+      - switch.turn_off: section_right
+      - switch.turn_off: section_back
+      - switch.turn_off: section_lines
+      - switch.turn_off: pump_relay
+      - lambda: |-
+          id(active_section_started_ms) = 0;
+
+  - id: watchdog_safe_off
+    mode: restart
+    then:
+      - script.execute: all_off_without_notification
+      - homeassistant.service:
+          service: notify.all_phones
+          data:
+            title: "Irrigation safety stop"
+            message: "Irrigation runtime exceeded max limit. All sections and pump were switched off."
+
+number:
+  - platform: template
+    id: max_runtime_minutes
+    name: "Irrigation Max Runtime"
+    optimistic: true
+    restore_value: true
+    initial_value: 120
+    min_value: 1
+    max_value: 240
+    step: 1
+    unit_of_measurement: "min"
+    icon: mdi:timer-cog-outline
+
+switch:
+  - platform: gpio
+    id: pump_relay
+    pin:
+      number: GPIO12
+      inverted: false
+    internal: true
+    restore_mode: ALWAYS_OFF
+
+  - platform: gpio
+    id: section_left
+    name: "Section Left"
+    pin:
+      number: GPIO13
+      inverted: false
+    interlock: [section_right, section_back, section_lines]
+    interlock_wait_time: 100ms
+    restore_mode: ALWAYS_OFF
+    on_turn_on:
+      then:
+        - script.execute: sync_pump_from_sections
+    on_turn_off:
+      then:
+        - script.execute: sync_pump_from_sections
+
+  - platform: gpio
+    id: section_right
+    name: "Section Right"
+    pin:
+      number: GPIO15
+      inverted: false
+    interlock: [section_left, section_back, section_lines]
+    interlock_wait_time: 100ms
+    restore_mode: ALWAYS_OFF
+    on_turn_on:
+      then:
+        - script.execute: sync_pump_from_sections
+    on_turn_off:
+      then:
+        - script.execute: sync_pump_from_sections
+
+  - platform: gpio
+    id: section_back
+    name: "Section Back"
+    pin:
+      number: GPIO5
+      inverted: false
+    interlock: [section_left, section_right, section_lines]
+    interlock_wait_time: 100ms
+    restore_mode: ALWAYS_OFF
+    on_turn_on:
+      then:
+        - script.execute: sync_pump_from_sections
+    on_turn_off:
+      then:
+        - script.execute: sync_pump_from_sections
+
+  - platform: gpio
+    id: section_lines
+    name: "Section Lines"
+    pin:
+      number: GPIO4
+      inverted: false
+    interlock: [section_left, section_right, section_back]
+    interlock_wait_time: 100ms
+    restore_mode: ALWAYS_OFF
+    on_turn_on:
+      then:
+        - script.execute: sync_pump_from_sections
+    on_turn_off:
+      then:
+        - script.execute: sync_pump_from_sections
+
+binary_sensor:
+  - platform: template
+    id: pump_running
+    name: "Pump Running"
+    device_class: running
+    lambda: |-
+      return id(pump_relay).state;
+
+interval:
+  - interval: 15s
+    then:
+      - lambda: |-
+          const bool any_section_active =
+              id(section_left).state ||
+              id(section_right).state ||
+              id(section_back).state ||
+              id(section_lines).state;
+
+          if (!any_section_active) {
+            return;
+          }
+
+          if (id(active_section_started_ms) == 0) {
+            id(active_section_started_ms) = millis();
+            return;
+          }
+
+          const float elapsed_minutes =
+              (millis() - id(active_section_started_ms)) / 60000.0f;
+
+          if (elapsed_minutes > id(max_runtime_minutes).state) {
+            id(watchdog_safe_off).execute();
+          }
+
+sensor:
+  - platform: wifi_signal
+    name: "Irrigation WiFi Signal"
+    update_interval: 60s
+
+  - platform: template
+    name: "Irrigation Session Time"
+    id: irrigation_session_time
+    unit_of_measurement: "s"
+    device_class: duration
+    state_class: measurement
+    update_interval: 10s
+    lambda: |-
+      if (id(active_section_started_ms) == 0) {
+        return 0.0;
+      }
+      return (float)(millis() - id(active_section_started_ms)) / 1000.0;

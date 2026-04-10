@@ -1,0 +1,81 @@
+# Irrigation Package
+# Daily morning irrigation sequence with optional evening run in hot period mode.
+
+input_boolean:
+  irrigation_schedule_enabled:
+    name: "Irrigation Schedule Enabled"
+    icon: mdi:sprinkler-variant
+    initial: true
+
+  irrigation_hot_period_mode:
+    name: "Irrigation Hot Period Mode"
+    icon: mdi:weather-sunny-alert
+    initial: false
+
+input_datetime:
+  irrigation_evening_run_time:
+    name: "Irrigation Evening Run Time"
+    has_date: false
+    has_time: true
+    initial: "22:00:00"
+
+automation:
+  - id: irrigation_morning_sequence
+    alias: "Irrigation: Morning sequence"
+    trigger:
+      - platform: time
+        at: "05:00:00"
+    condition:
+      - condition: state
+        entity_id: input_boolean.irrigation_schedule_enabled
+        state: "on"
+    action:
+      - service: script.irrigation_run_sequence
+
+  - id: irrigation_evening_sequence_hot_period
+    alias: "Irrigation: Evening sequence (hot period)"
+    trigger:
+      - platform: time
+        at: input_datetime.irrigation_evening_run_time
+    condition:
+      - condition: state
+        entity_id: input_boolean.irrigation_schedule_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.irrigation_hot_period_mode
+        state: "on"
+    action:
+      - service: script.irrigation_run_sequence
+
+script:
+  irrigation_all_off:
+    alias: "Irrigation: All Off"
+    mode: restart
+    sequence:
+      - service: esphome.irrigation_irrigation_all_off
+
+  irrigation_run_sequence:
+    alias: "Irrigation: Run Sequence"
+    mode: single
+    sequence:
+      - service: switch.turn_on
+        target:
+          entity_id: switch.irrigation_section_right
+      - delay: "00:15:00"
+
+      - service: switch.turn_on
+        target:
+          entity_id: switch.irrigation_section_left
+      - delay: "00:15:00"
+
+      - service: switch.turn_on
+        target:
+          entity_id: switch.irrigation_section_back
+      - delay: "00:15:00"
+
+      - service: switch.turn_on
+        target:
+          entity_id: switch.irrigation_section_lines
+      - delay: "00:30:00"
+
+      - service: script.irrigation_all_off

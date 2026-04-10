@@ -4,6 +4,7 @@ secrets.yaml
 # Old gate esp project files
 gateEsp/
 homegate/
+irrigationEsp/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
