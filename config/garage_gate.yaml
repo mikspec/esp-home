@@ -17,7 +17,8 @@ esp8266:
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
-  
+  min_auth_mode: WPA2
+
   # Enable fallback hotspot in case wifi connection fails
   ap:
     ssid: "Garage Gate Fallback"
@@ -39,23 +40,23 @@ api:
       then:
         - lambda: |-
             const int64_t req_timestamp = static_cast<int64_t>(request_id);
-            
+
             if (req_timestamp <= 0) {
               ESP_LOGW("gate", "Invalid request_id - ignoring");
               return;
             }
-            
+
             // Reject if request_id is not higher than last processed
             if (req_timestamp <= id(last_request_timestamp)) {
               ESP_LOGW("gate", "Rejected: request_id %lld <= last_timestamp %lld (replay or old request)", 
                        req_timestamp, id(last_request_timestamp));
               return;
             }
-            
+
             // Accept and update last timestamp
             id(last_request_timestamp) = req_timestamp;
             ESP_LOGI("gate", "Processing request_id %lld", req_timestamp);
-            
+
             if (action == "open") {
               if (!id(gate_contactron).state) {
                 id(last_action_source) = 1;
@@ -196,7 +197,7 @@ binary_sensor:
     id: gate_contactron
     name: "Garage Gate Position Sensor"
     pin:
-      number: GPIO14  # D5
+      number: GPIO14 # D5
       mode:
         input: true
         pullup: true
@@ -215,7 +216,7 @@ binary_sensor:
               id(last_action_source) = 2;  // 2 = external/remote control
             }
             id(action_pending) = false;
-            
+
             id(open_gate_timestamp_ms) = millis();
             // Only enable auto-close for button press (source == 0)
             if (id(auto_close_enabled).state && id(open_gate_period_ms) == 0 && id(last_action_source) == 0) {
@@ -238,7 +239,7 @@ binary_sensor:
     id: gate_button
     name: "Garage Gate Button"
     pin:
-      number: GPIO4  # D2
+      number: GPIO4 # D2
       mode:
         input: true
         pullup: true
@@ -280,7 +281,7 @@ switch:
     id: gate_relay
     name: "Garage Gate Relay"
     pin:
-      number: GPIO5  # D1
+      number: GPIO5 # D1
       inverted: true
     restore_mode: ALWAYS_OFF
     on_turn_on:

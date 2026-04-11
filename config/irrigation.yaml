@@ -73,7 +73,7 @@ script:
   - id: pump_off_if_idle
     mode: restart
     then:
-      - delay: 1s
+      - delay: 100ms
       - lambda: |-
           const bool any_section_active =
               id(section_left).state ||
@@ -141,7 +141,7 @@ switch:
       number: GPIO13
       inverted: false
     interlock: [section_right, section_back, section_lines]
-    interlock_wait_time: 100ms
+    interlock_wait_time: 50ms
     restore_mode: ALWAYS_OFF
     on_turn_on:
       then:
@@ -157,7 +157,7 @@ switch:
       number: GPIO15
       inverted: false
     interlock: [section_left, section_back, section_lines]
-    interlock_wait_time: 100ms
+    interlock_wait_time: 50ms
     restore_mode: ALWAYS_OFF
     on_turn_on:
       then:
@@ -173,7 +173,7 @@ switch:
       number: GPIO5
       inverted: false
     interlock: [section_left, section_right, section_lines]
-    interlock_wait_time: 100ms
+    interlock_wait_time: 50ms
     restore_mode: ALWAYS_OFF
     on_turn_on:
       then:
@@ -189,7 +189,7 @@ switch:
       number: GPIO4
       inverted: false
     interlock: [section_left, section_right, section_back]
-    interlock_wait_time: 100ms
+    interlock_wait_time: 50ms
     restore_mode: ALWAYS_OFF
     on_turn_on:
       then:
