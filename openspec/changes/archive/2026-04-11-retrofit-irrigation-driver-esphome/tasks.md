@@ -26,8 +26,8 @@
 
 ## 5. Validation And Cutover
 
-- [ ] 5.1 Validate relay mapping and exclusivity with manual control tests in Home Assistant
-- [ ] 5.2 Validate schedule timing and pump behavior against expected timeline from legacy cron flow
-- [ ] 5.3 Validate runtime watchdog by simulating overrun and confirming forced safe-off
-- [ ] 5.4 Validate watchdog notification delivery to `notify.all_phones`
-- [ ] 5.5 Disable legacy cron relay script after successful end-to-end validation and document rollback path
+- [x] 5.1 Validate relay mapping and exclusivity with manual control tests in Home Assistant
+- [x] 5.2 Validate schedule timing and pump behavior against expected timeline from legacy cron flow
+- [x] 5.3 Validate runtime watchdog by simulating overrun and confirming forced safe-off
+- [x] 5.4 Validate watchdog notification delivery to `notify.all_phones`
+- [x] 5.5 Disable legacy cron relay script after successful end-to-end validation and document rollback path
