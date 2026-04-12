@@ -1,3 +1,8 @@
+## Purpose
+Define runtime watchdog safeguards that limit maximum section run duration, force safe-off on overrun, and notify operations through the existing Home Assistant notification path.
+
+## Requirements
+
 ### Requirement: Configurable maximum section runtime
 The system SHALL provide a configurable maximum runtime limit for any active irrigation section with a default value of 120 minutes.
 

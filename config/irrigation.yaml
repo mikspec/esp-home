@@ -4,13 +4,16 @@ esphome:
   on_boot:
     priority: -100
     then:
-      - switch.turn_off: section_left
-      - switch.turn_off: section_right
-      - switch.turn_off: section_back
-      - switch.turn_off: section_lines
+      - switch.turn_off: section_left_relay
+      - switch.turn_off: section_right_relay
+      - switch.turn_off: section_back_relay
+      - switch.turn_off: section_lines_relay
       - switch.turn_off: pump_relay
       - lambda: |-
           id(active_section_started_ms) = 0;
+          id(weak_precharge_active) = false;
+          id(weak_precharge_target) = -1;
+      - script.execute: publish_section_states
 
 esp8266:
   board: nodemcuv2
@@ -47,17 +50,176 @@ globals:
     type: uint32_t
     restore_value: false
     initial_value: "0"
+  - id: weak_precharge_active
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: weak_precharge_target
+    type: int
+    restore_value: false
+    initial_value: "-1"
+  - id: section_left_is_weak
+    type: bool
+    restore_value: true
+    initial_value: "false"
+  - id: section_right_is_weak
+    type: bool
+    restore_value: true
+    initial_value: "false"
+  - id: section_back_is_weak
+    type: bool
+    restore_value: true
+    initial_value: "false"
+  - id: section_lines_is_weak
+    type: bool
+    restore_value: true
+    initial_value: "false"
 
 script:
+  - id: publish_section_states
+    mode: restart
+    then:
+      - lambda: |-
+          id(section_left).publish_state(
+              id(section_left_relay).state ||
+              (id(weak_precharge_active) && id(weak_precharge_target) == 0));
+          id(section_right).publish_state(
+              id(section_right_relay).state ||
+              (id(weak_precharge_active) && id(weak_precharge_target) == 1));
+          id(section_back).publish_state(
+              id(section_back_relay).state ||
+              (id(weak_precharge_active) && id(weak_precharge_target) == 2));
+          id(section_lines).publish_state(
+              id(section_lines_relay).state ||
+              (id(weak_precharge_active) && id(weak_precharge_target) == 3));
+
+  - id: cancel_weak_precharge
+    mode: restart
+    then:
+      - script.stop: weak_precharge_activate
+      - lambda: |-
+          id(weak_precharge_active) = false;
+          id(weak_precharge_target) = -1;
+      - script.execute: publish_section_states
+
+  - id: turn_off_all_sections
+    mode: restart
+    then:
+      - switch.turn_off: section_left_relay
+      - switch.turn_off: section_right_relay
+      - switch.turn_off: section_back_relay
+      - switch.turn_off: section_lines_relay
+
+  - id: weak_precharge_activate
+    mode: restart
+    parameters:
+      target: int
+    then:
+      - script.stop: pump_off_if_idle
+      - lambda: |-
+          id(weak_precharge_active) = true;
+          id(weak_precharge_target) = target;
+      - script.execute: turn_off_all_sections
+      - if:
+          condition:
+            switch.is_off: pump_relay
+          then:
+            - switch.turn_on: pump_relay
+      - script.execute: publish_section_states
+      - delay: !lambda |-
+          return (uint32_t) (id(weak_section_precharge_seconds).state * 1000.0f);
+      - lambda: |-
+          id(weak_precharge_active) = false;
+          id(weak_precharge_target) = -1;
+      - lambda: |-
+          if (target == 0) {
+            id(section_left_relay).turn_on();
+          } else if (target == 1) {
+            id(section_right_relay).turn_on();
+          } else if (target == 2) {
+            id(section_back_relay).turn_on();
+          } else if (target == 3) {
+            id(section_lines_relay).turn_on();
+          }
+      - script.execute: publish_section_states
+
+  - id: request_section_activation
+    mode: restart
+    parameters:
+      target: int
+    then:
+      - script.stop: pump_off_if_idle
+      - if:
+          condition:
+            lambda: |-
+              return (target == 0 && id(section_left_relay).state) ||
+                     (target == 1 && id(section_right_relay).state) ||
+                     (target == 2 && id(section_back_relay).state) ||
+                     (target == 3 && id(section_lines_relay).state);
+          then:
+            - script.execute: publish_section_states
+          else:
+            - if:
+                condition:
+                  lambda: |-
+                    if (target == 0) {
+                      return id(section_left_is_weak);
+                    }
+                    if (target == 1) {
+                      return id(section_right_is_weak);
+                    }
+                    if (target == 2) {
+                      return id(section_back_is_weak);
+                    }
+                    return id(section_lines_is_weak);
+                then:
+                  - script.execute:
+                      id: weak_precharge_activate
+                      target: !lambda return target;
+                else:
+                  - script.execute: cancel_weak_precharge
+                  - lambda: |-
+                      if (target == 0) {
+                        id(section_left_relay).turn_on();
+                      } else if (target == 1) {
+                        id(section_right_relay).turn_on();
+                      } else if (target == 2) {
+                        id(section_back_relay).turn_on();
+                      } else if (target == 3) {
+                        id(section_lines_relay).turn_on();
+                      }
+
+  - id: request_section_deactivation
+    mode: restart
+    parameters:
+      target: int
+    then:
+      - if:
+          condition:
+            lambda: return id(weak_precharge_active) && id(weak_precharge_target) == target;
+          then:
+            - script.execute: cancel_weak_precharge
+            - script.execute: pump_off_if_idle
+      - lambda: |-
+          if (target == 0) {
+            id(section_left_relay).turn_off();
+          } else if (target == 1) {
+            id(section_right_relay).turn_off();
+          } else if (target == 2) {
+            id(section_back_relay).turn_off();
+          } else if (target == 3) {
+            id(section_lines_relay).turn_off();
+          }
+
   - id: sync_pump_from_sections
     mode: restart
     then:
       - lambda: |-
           const bool any_section_active =
-              id(section_left).state ||
-              id(section_right).state ||
-              id(section_back).state ||
-              id(section_lines).state;
+              id(section_left_relay).state ||
+              id(section_right_relay).state ||
+              id(section_back_relay).state ||
+              id(section_lines_relay).state;
 
           if (any_section_active) {
             if (id(active_section_started_ms) == 0) {
@@ -76,12 +238,12 @@ script:
       - delay: 100ms
       - lambda: |-
           const bool any_section_active =
-              id(section_left).state ||
-              id(section_right).state ||
-              id(section_back).state ||
-              id(section_lines).state;
+              id(section_left_relay).state ||
+              id(section_right_relay).state ||
+              id(section_back_relay).state ||
+              id(section_lines_relay).state;
 
-          if (any_section_active) {
+          if (any_section_active || id(weak_precharge_active)) {
             return;
           }
 
@@ -94,13 +256,15 @@ script:
     mode: restart
     then:
       - script.stop: pump_off_if_idle
-      - switch.turn_off: section_left
-      - switch.turn_off: section_right
-      - switch.turn_off: section_back
-      - switch.turn_off: section_lines
+      - script.execute: cancel_weak_precharge
+      - switch.turn_off: section_left_relay
+      - switch.turn_off: section_right_relay
+      - switch.turn_off: section_back_relay
+      - switch.turn_off: section_lines_relay
       - switch.turn_off: pump_relay
       - lambda: |-
           id(active_section_started_ms) = 0;
+      - script.execute: publish_section_states
 
   - id: watchdog_safe_off
     mode: restart
@@ -124,6 +288,20 @@ number:
     step: 1
     unit_of_measurement: "min"
     icon: mdi:timer-cog-outline
+    entity_category: config
+
+  - platform: template
+    id: weak_section_precharge_seconds
+    name: "Irrigation Weak Section Precharge"
+    optimistic: true
+    restore_value: true
+    initial_value: 3
+    min_value: 0
+    max_value: 30
+    step: 1
+    unit_of_measurement: "s"
+    icon: mdi:timer-sand
+    entity_category: config
 
 switch:
   - platform: gpio
@@ -135,68 +313,188 @@ switch:
     restore_mode: ALWAYS_OFF
 
   - platform: gpio
-    id: section_left
-    name: "Section Left"
+    id: section_left_relay
+    internal: true
     pin:
       number: GPIO13
       inverted: false
-    interlock: [section_right, section_back, section_lines]
+    interlock: [section_right_relay, section_back_relay, section_lines_relay]
     interlock_wait_time: 50ms
     restore_mode: ALWAYS_OFF
     on_turn_on:
       then:
         - script.execute: sync_pump_from_sections
+        - script.execute: publish_section_states
     on_turn_off:
       then:
         - script.execute: sync_pump_from_sections
+        - script.execute: publish_section_states
 
   - platform: gpio
-    id: section_right
-    name: "Section Right"
+    id: section_right_relay
+    internal: true
     pin:
       number: GPIO15
       inverted: false
-    interlock: [section_left, section_back, section_lines]
+    interlock: [section_left_relay, section_back_relay, section_lines_relay]
     interlock_wait_time: 50ms
     restore_mode: ALWAYS_OFF
     on_turn_on:
       then:
         - script.execute: sync_pump_from_sections
+        - script.execute: publish_section_states
     on_turn_off:
       then:
         - script.execute: sync_pump_from_sections
+        - script.execute: publish_section_states
 
   - platform: gpio
-    id: section_back
-    name: "Section Back"
+    id: section_back_relay
+    internal: true
     pin:
       number: GPIO5
       inverted: false
-    interlock: [section_left, section_right, section_lines]
+    interlock: [section_left_relay, section_right_relay, section_lines_relay]
     interlock_wait_time: 50ms
     restore_mode: ALWAYS_OFF
     on_turn_on:
       then:
         - script.execute: sync_pump_from_sections
+        - script.execute: publish_section_states
     on_turn_off:
       then:
         - script.execute: sync_pump_from_sections
+        - script.execute: publish_section_states
 
   - platform: gpio
-    id: section_lines
-    name: "Section Lines"
+    id: section_lines_relay
+    internal: true
     pin:
       number: GPIO4
       inverted: false
-    interlock: [section_left, section_right, section_back]
+    interlock: [section_left_relay, section_right_relay, section_back_relay]
     interlock_wait_time: 50ms
     restore_mode: ALWAYS_OFF
     on_turn_on:
       then:
         - script.execute: sync_pump_from_sections
+        - script.execute: publish_section_states
     on_turn_off:
       then:
         - script.execute: sync_pump_from_sections
+        - script.execute: publish_section_states
+
+  - platform: template
+    id: section_left
+    name: "Section Left"
+    optimistic: false
+    turn_on_action:
+      - script.execute:
+          id: request_section_activation
+          target: 0
+    turn_off_action:
+      - script.execute:
+          id: request_section_deactivation
+          target: 0
+
+  - platform: template
+    id: section_right
+    name: "Section Right"
+    optimistic: false
+    turn_on_action:
+      - script.execute:
+          id: request_section_activation
+          target: 1
+    turn_off_action:
+      - script.execute:
+          id: request_section_deactivation
+          target: 1
+
+  - platform: template
+    id: section_back
+    name: "Section Back"
+    optimistic: false
+    turn_on_action:
+      - script.execute:
+          id: request_section_activation
+          target: 2
+    turn_off_action:
+      - script.execute:
+          id: request_section_deactivation
+          target: 2
+
+  - platform: template
+    id: section_lines
+    name: "Section Lines"
+    optimistic: false
+    turn_on_action:
+      - script.execute:
+          id: request_section_activation
+          target: 3
+    turn_off_action:
+      - script.execute:
+          id: request_section_deactivation
+          target: 3
+
+  - platform: template
+    id: section_left_weak_config
+    name: "Section Left Weak"
+    optimistic: false
+    entity_category: config
+    lambda: return id(section_left_is_weak);
+    turn_on_action:
+      - lambda: |-
+          id(section_left_is_weak) = true;
+          id(section_left_weak_config).publish_state(true);
+    turn_off_action:
+      - lambda: |-
+          id(section_left_is_weak) = false;
+          id(section_left_weak_config).publish_state(false);
+
+  - platform: template
+    id: section_right_weak_config
+    name: "Section Right Weak"
+    optimistic: false
+    entity_category: config
+    lambda: return id(section_right_is_weak);
+    turn_on_action:
+      - lambda: |-
+          id(section_right_is_weak) = true;
+          id(section_right_weak_config).publish_state(true);
+    turn_off_action:
+      - lambda: |-
+          id(section_right_is_weak) = false;
+          id(section_right_weak_config).publish_state(false);
+
+  - platform: template
+    id: section_back_weak_config
+    name: "Section Back Weak"
+    optimistic: false
+    entity_category: config
+    lambda: return id(section_back_is_weak);
+    turn_on_action:
+      - lambda: |-
+          id(section_back_is_weak) = true;
+          id(section_back_weak_config).publish_state(true);
+    turn_off_action:
+      - lambda: |-
+          id(section_back_is_weak) = false;
+          id(section_back_weak_config).publish_state(false);
+
+  - platform: template
+    id: section_lines_weak_config
+    name: "Section Lines Weak"
+    optimistic: false
+    entity_category: config
+    lambda: return id(section_lines_is_weak);
+    turn_on_action:
+      - lambda: |-
+          id(section_lines_is_weak) = true;
+          id(section_lines_weak_config).publish_state(true);
+    turn_off_action:
+      - lambda: |-
+          id(section_lines_is_weak) = false;
+          id(section_lines_weak_config).publish_state(false);
 
 binary_sensor:
   - platform: template
@@ -211,10 +509,10 @@ interval:
     then:
       - lambda: |-
           const bool any_section_active =
-              id(section_left).state ||
-              id(section_right).state ||
-              id(section_back).state ||
-              id(section_lines).state;
+              id(section_left_relay).state ||
+              id(section_right_relay).state ||
+              id(section_back_relay).state ||
+              id(section_lines_relay).state;
 
           if (!any_section_active) {
             return;
@@ -240,12 +538,12 @@ sensor:
   - platform: template
     name: "Irrigation Session Time"
     id: irrigation_session_time
-    unit_of_measurement: "s"
+    unit_of_measurement: "min"
     device_class: duration
     state_class: measurement
-    update_interval: 10s
+    update_interval: 30s
     lambda: |-
       if (id(active_section_started_ms) == 0) {
         return 0.0;
       }
-      return (float)(millis() - id(active_section_started_ms)) / 1000.0;
+      return (float)(millis() - id(active_section_started_ms)) / 60000.0f;

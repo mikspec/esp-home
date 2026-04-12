@@ -1,3 +1,8 @@
+## Purpose
+Define daily irrigation sequencing rules, including trigger cadence, optional hot-period second run behavior, fixed section order and durations, and explicit safe shutdown at sequence end.
+
+## Requirements
+
 ### Requirement: Daily irrigation run uses one sequence workflow
 The system SHALL provide one daily irrigation automation that starts a single ordered sequence rather than multiple independent schedules.
 

@@ -1,3 +1,8 @@
+## Purpose
+Define baseline relay control and pump-coupling behavior for the irrigation device, including section exclusivity, safe startup state, and Home Assistant visibility constraints.
+
+## Requirements
+
 ### Requirement: Fixed relay mapping for irrigation outputs
 The system SHALL expose five relay outputs on ESP8266 with fixed mapping: relay1 as pump, relay2 as section left, relay3 as section right, relay4 as section back, and relay5 as section lines.
 
@@ -17,19 +22,27 @@ The system SHALL enforce that at most one irrigation section is active at any ti
 - **THEN** the system SHALL still keep exactly one active section by turning the prior section off
 
 ### Requirement: Pump coupling to section state
-The system SHALL automatically control the pump based on section activity and SHALL NOT require independent schedule commands to keep pump and sections consistent.
+The system SHALL automatically control the pump based on section activity and weak-section pre-charge behavior, and SHALL NOT require independent schedule commands to keep pump and sections consistent.
 
-#### Scenario: Section activation starts pump
-- **WHEN** any section transitions from off to on
-- **THEN** the pump SHALL be turned on
+#### Scenario: Non-weak section activation starts pump
+- **WHEN** a non-weak section transitions from off to on
+- **THEN** the pump SHALL be on
 
 #### Scenario: Section handoff keeps pump running
 - **WHEN** one active section is replaced by another through the device interlock behavior
 - **THEN** the pump SHALL remain on throughout the handoff and SHALL NOT be power-cycled because of the brief transition gap
 
-#### Scenario: No active sections stops pump
-- **WHEN** all sections are off
+#### Scenario: No active sections outside pre-charge stops pump
+- **WHEN** all sections are off and no weak-section pre-charge window is active
 - **THEN** the pump SHALL be turned off
+
+#### Scenario: Weak section request triggers staged pre-charge
+- **WHEN** a weak section is selected for activation from any prior state
+- **THEN** the controller SHALL run the pump with all sections off for the configured global pre-charge duration before opening the selected weak section
+
+#### Scenario: Target change during pre-charge follows latest request
+- **WHEN** section target selection changes while a weak pre-charge window is in progress
+- **THEN** the previously pending target SHALL be canceled and the latest target SHALL be evaluated using the same weak/non-weak activation rules
 
 ### Requirement: Pump state visibility without direct user pump control
 The system SHALL expose pump running state in Home Assistant while preventing direct user operation of the pump relay from Home Assistant controls.
