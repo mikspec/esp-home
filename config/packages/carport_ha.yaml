@@ -1,0 +1,41 @@
+# Carport Package
+# Provides script wrappers and helper controls for carport plug/light operations.
+
+script:
+  carport_all_off:
+    alias: "Carport: All Off"
+    mode: restart
+    sequence:
+      - service: esphome.carport_carport_all_off
+
+  carport_plug_on:
+    alias: "Carport: Plug On"
+    mode: restart
+    sequence:
+      - service: switch.turn_on
+        target:
+          entity_id: switch.carport_carport_plug
+
+  carport_plug_off:
+    alias: "Carport: Plug Off"
+    mode: restart
+    sequence:
+      - service: switch.turn_off
+        target:
+          entity_id: switch.carport_carport_plug
+
+  carport_light_on:
+    alias: "Carport: Light On"
+    mode: restart
+    sequence:
+      - service: switch.turn_on
+        target:
+          entity_id: switch.carport_carport_light
+
+  carport_light_off:
+    alias: "Carport: Light Off"
+    mode: restart
+    sequence:
+      - service: switch.turn_off
+        target:
+          entity_id: switch.carport_carport_light

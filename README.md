@@ -17,13 +17,38 @@ Complete ESPHome implementation for ESP8266-based garage gate controller with Ho
 
 **Documentation:** [drivers/garage-gate/README.md](drivers/garage-gate/README.md)
 
+### 💡 Carport Relay Controller
+ESPHome implementation for ESP8266-based carport relay control.
+
+**Features:**
+- Relay1 control for 230V carport plug
+- Relay2 control for carport light
+- Power recovery policy by relay role (plug restore last state, light boot off)
+- Optional light watchdog with configurable max-on minutes and enable/disable toggle
+- Home Assistant package script wrappers for standard operations
+
+**Documentation:** [drivers/carport/README.md](drivers/carport/README.md)
+
+### 🚿 Irrigation Controller
+ESPHome implementation for ESP8266-based irrigation relay control.
+
+**Features:**
+- Fixed relay mapping for pump and irrigation sections
+- Single-active-section behavior with interlock protection
+- Pump coupling to active sections with handoff-safe behavior
+- Optional hot-period second daily run via Home Assistant package controls
+- Configurable runtime safety watchdog with forced safe-off and phone notifications
+
+ **ESPHome Config Reference:** [config/irrigation.yaml](config/irrigation.yaml)
+ **Home Assistant Package Reference:** [config/packages/irrigation_ha.yaml](config/packages/irrigation_ha.yaml)
+
 **Quick Start:**
 ```bash
 # Start ESPHome dashboard
 docker-compose up -d
 
 # Access at http://localhost:6052
-# Upload garage_gate.yaml from config/ directory
+# Upload one of: garage_gate.yaml, carport.yaml, or irrigation.yaml from config/
 ```
 
 ## Project Structure
@@ -34,10 +59,19 @@ esp-home/
 ├── LICENSE                   # Project license
 ├── README.md                 # This file
 ├── config/                   # ESPHome configurations
+│   ├── carport.yaml          # Carport ESPHome config
 │   ├── garage_gate.yaml      # Garage gate ESPHome config
+│   ├── irrigation.yaml       # Irrigation ESPHome config
 │   ├── home-assistant-examples.yaml  # HA automations & scripts
+│   ├── packages/carport_ha.yaml  # Carport HA package
+│   ├── packages/garage_gate.yaml  # Garage gate HA package
+│   ├── packages/irrigation_ha.yaml  # Irrigation HA package
 │   └── secrets.yaml.template # Secrets template
 └── drivers/                  # Driver documentation
+    ├── carport/              # Carport relay documentation
+    │   └── README.md
+    ├── irrigation/           # Irrigation legacy driver sources
+    │   └── irrigationEsp/
     └── garage-gate/          # Garage gate documentation
         ├── gateEsp/          # Original C implementation
         │   ├── gate/         # Arduino sketch

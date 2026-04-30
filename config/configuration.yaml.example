@@ -13,6 +13,7 @@ default_config:
 homeassistant:
   packages:
     garage_gate: !include packages/garage_gate.yaml
+    carport: !include packages/carport_ha.yaml
     irrigation: !include packages/irrigation_ha.yaml
 
 # ----------------------------------------------
