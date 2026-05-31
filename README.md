@@ -42,13 +42,25 @@ ESPHome implementation for ESP8266-based irrigation relay control.
  **ESPHome Config Reference:** [config/irrigation.yaml](config/irrigation.yaml)
  **Home Assistant Package Reference:** [config/packages/irrigation_ha.yaml](config/packages/irrigation_ha.yaml)
 
+### 🚐 Camper Relay Controller
+ESPHome baseline for ESP32 relay X4_V1.1 camper load control.
+
+**Features:**
+- Fixed 4-relay role mapping (inverter, fridge, spare1, spare2)
+- Role-specific startup behavior (inverter/spares safe-off, fridge state restore)
+- Secure connectivity baseline (Wi-Fi + fallback AP, encrypted API, OTA password)
+- Basic diagnostics for bring-up (Wi-Fi signal, uptime, version, IP/SSID)
+
+**ESPHome Config Reference:** [config/camper.yaml](config/camper.yaml)
+**Documentation:** [drivers/camper/README.md](drivers/camper/README.md)
+
 **Quick Start:**
 ```bash
 # Start ESPHome dashboard
 docker-compose up -d
 
 # Access at http://localhost:6052
-# Upload one of: garage_gate.yaml, carport.yaml, or irrigation.yaml from config/
+# Upload one of: garage_gate.yaml, carport.yaml, irrigation.yaml, or camper.yaml from config/
 ```
 
 ## Project Structure
@@ -60,6 +72,7 @@ esp-home/
 ├── README.md                 # This file
 ├── config/                   # ESPHome configurations
 │   ├── carport.yaml          # Carport ESPHome config
+│   ├── camper.yaml           # Camper ESPHome config
 │   ├── garage_gate.yaml      # Garage gate ESPHome config
 │   ├── irrigation.yaml       # Irrigation ESPHome config
 │   ├── home-assistant-examples.yaml  # HA automations & scripts
@@ -68,6 +81,8 @@ esp-home/
 │   ├── packages/irrigation_ha.yaml  # Irrigation HA package
 │   └── secrets.yaml.template # Secrets template
 └── drivers/                  # Driver documentation
+    ├── camper/               # Camper relay documentation
+    │   └── README.md
     ├── carport/              # Carport relay documentation
     │   └── README.md
     ├── irrigation/           # Irrigation legacy driver sources
@@ -88,7 +103,7 @@ esp-home/
 
 ### Prerequisites
 - Docker and Docker Compose
-- ESP8266/NodeMCU board
+- ESP8266/NodeMCU board or ESP32 relay board
 - Home Assistant (optional, for full integration)
 
 ### Setup

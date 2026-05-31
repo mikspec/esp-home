@@ -1,0 +1,188 @@
+esphome:
+  name: camper
+  friendly_name: camper
+  on_boot:
+    priority: -100
+    then:
+      # Keep safety-critical and unassigned channels off on restart.
+      # Target the internal GPIO switch directly to bypass the safe-shutdown script.
+      - switch.turn_off: camper_inverter_relay_gpio
+      - switch.turn_off: camper_ng_bond_relay
+      - switch.turn_off: camper_spare_2_relay
+      # Re-evaluate N-G bond after boot in case automation was enabled before reboot.
+      - script.execute: ng_bond_evaluate
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+    advanced:
+      minimum_chip_revision: "3.1"
+      sram1_as_iram: true
+
+wifi:
+  networks:
+    - ssid: !secret wifi_camper_ssid
+      password: !secret wifi_camper_password
+      priority: 10
+    - ssid: !secret wifi_ssid
+      password: !secret wifi_password
+      priority: 0
+  min_auth_mode: WPA2
+  ap:
+    ssid: !secret wifi_camperesp_ssid
+    password: !secret wifi_camperesp_password
+
+logger:
+  level: DEBUG
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+web_server:
+  port: 80
+
+switch:
+  - platform: gpio
+    id: camper_inverter_relay_gpio
+    internal: true
+    pin:
+      number: GPIO25
+    restore_mode: ALWAYS_OFF
+
+  - platform: template
+    id: camper_inverter_relay
+    name: "Camper Inverter"
+    optimistic: true
+    restore_mode: ALWAYS_OFF
+    turn_on_action:
+      - switch.turn_on: camper_inverter_relay_gpio
+    turn_off_action:
+      - script.execute: inverter_safe_shutdown
+
+  - platform: gpio
+    id: camper_fridge_relay
+    name: "Camper Fridge"
+    pin:
+      number: GPIO26
+      inverted: true
+    restore_mode: ALWAYS_ON
+
+  - platform: gpio
+    id: camper_ng_bond_relay
+    name: "Camper N-G Bond"
+    pin:
+      number: GPIO33
+    restore_mode: ALWAYS_OFF
+    on_turn_on:
+      # Safety interlock: never allow the bond relay to be closed when shore power is present,
+      # regardless of automation state or manual commands from Home Assistant.
+      - if:
+          condition:
+            - lambda: 'return id(camper_shore_power).state;'
+          then:
+            - switch.turn_off: camper_ng_bond_relay
+
+  - platform: gpio
+    id: camper_spare_2_relay
+    name: "Camper Spare Relay 2"
+    pin:
+      number: GPIO32
+    restore_mode: ALWAYS_OFF
+
+  - platform: template
+    id: camper_ng_bond_auto
+    name: "Camper N-G Bond Auto"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - script.execute: ng_bond_evaluate
+    turn_off_action:
+      - script.stop: ng_bond_delayed_close
+      - switch.turn_off: camper_ng_bond_relay
+
+script:
+  - id: inverter_safe_shutdown
+    then:
+      # Cancel any pending delayed bond close before opening the relay.
+      - script.stop: ng_bond_delayed_close
+      - if:
+          condition:
+            - switch.is_on: camper_ng_bond_relay
+          then:
+            - switch.turn_off: camper_ng_bond_relay
+            - delay: 5s
+      - switch.turn_off: camper_inverter_relay_gpio
+
+  - id: ng_bond_evaluate
+    mode: restart
+    then:
+      - if:
+          condition:
+            - lambda: 'return id(camper_ng_bond_auto).state && !id(camper_shore_power).state && id(camper_inverter_output).state;'
+          then:
+            - script.execute: ng_bond_delayed_close
+          else:
+            - script.stop: ng_bond_delayed_close
+            - switch.turn_off: camper_ng_bond_relay
+
+  - id: ng_bond_delayed_close
+    mode: single
+    then:
+      # Wait for inverter AC to stabilise before bonding neutral to PE.
+      - delay: 5s
+      - if:
+          condition:
+            - lambda: 'return id(camper_ng_bond_auto).state && !id(camper_shore_power).state && id(camper_inverter_output).state;'
+          then:
+            - switch.turn_on: camper_ng_bond_relay
+
+sensor:
+  - platform: wifi_signal
+    name: "Camper WiFi Signal"
+    update_interval: 60s
+
+  - platform: uptime
+    name: "Camper Uptime"
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "Camper IP Address"
+    ssid:
+      name: "Camper Connected SSID"
+
+  - platform: version
+    name: "Camper ESPHome Version"
+
+binary_sensor:
+  - platform: gpio
+    id: camper_shore_power
+    name: "Camper Shore Power"
+    pin:
+      number: GPIO21
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    device_class: power
+    on_state:
+      - script.execute: ng_bond_evaluate
+
+  - platform: gpio
+    id: camper_inverter_output
+    name: "Camper Inverter Output"
+    pin:
+      number: GPIO22
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    device_class: power
+    on_state:
+      - script.execute: ng_bond_evaluate
