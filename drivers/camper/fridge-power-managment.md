@@ -29,13 +29,43 @@ The fridge relay uses NC (normally-closed) wiring: when the relay is off the fri
 
 ```
 power_present = shore_power OR inverter_output
+soc_ok = True  # if BMS data absent or stale (> BMS_MAX_AGE_SECS)
+         OR soc > SOC_DRIVE_THRESHOLD
 
 fridge_on = power_present AND (
-    shore_power                                     # grid connected — always power fridge
-    OR (INV_BTN AND NOT FRDRIVE_BTN)                # inverter, no drive mode — always power fridge
-    OR (INV_BTN AND FRDRIVE_BTN AND RPM > 0)        # inverter, drive mode — engine must be running
+    shore_power                                              # grid connected — always power fridge
+    OR (INV_BTN AND NOT FRDRIVE_BTN)                         # inverter, no drive mode — always power fridge
+    OR (INV_BTN AND FRDRIVE_BTN AND RPM > 0 AND soc_ok)      # inverter, drive mode — engine running + SOC OK
 )
 ```
+
+Environment variables controlling the SOC guard (set in the `logfridge.py` process environment):
+
+| Variable | Default | Description |
+|---|---|---|
+| `SOC_DRIVE_THRESHOLD` | `50.0` | RV battery SOC % required in drive mode |
+| `BMS_MAX_AGE_SECS` | `300` | Seconds before BMSData is treated as stale/unavailable |
+
+## Fridge management - battery SOC consideration
+
+An additional guard condition is applied in drive mode: fridge is powered only when RPM > 0 **and** RV battery SOC > `SOC_DRIVE_THRESHOLD` (default 50%). The SOC is read from the `BMSData` memcache key (protobuf, decoded via `private/batmon-ha/bms_sample_v2_pb2.py`). If BMS data is absent or older than `BMS_MAX_AGE_SECS` seconds, the guard is bypassed (permissive fallback).
+
+Implemented in `logfridge.py` via `_get_soc_ok()` helper.
+
+## Fridge management - fridge power relay status
+
+The FRDRIVE button uses tri-state background colour to show both drive-mode state and actual fridge relay status:
+
+| Colour | Condition |
+|---|---|
+| Green (`#00aa00`) | `fridge_relay = 1` — fridge is powered (regardless of drive-mode state) |
+| Orange (`#ff9600`) | Drive mode ON, fridge not powered (RPM or SOC condition not met) |
+| Gray (`#555`) | Drive mode OFF, fridge not powered |
+
+The button label (✓/✗) continues to reflect the drive-mode toggle independently of colour.
+
+Implemented: `obd_stat` returns `fridge_relay` from `camp/fridge_relay` memcache key; `index.html` `update()` applies tri-state logic.
+
 
 ## Simplification
 

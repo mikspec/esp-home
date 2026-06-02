@@ -71,15 +71,17 @@ Enabled features:
 ## AC Topology
 
 ```
-Shore (L) ──[Shore sensor GPIO21]──────────────► Inverter AC IN (L)
-Shore (N) ─────────────────────────────────────► Inverter AC IN (N)
-Shore (PE)─────────────────────────────────────► PE bus
+Shore (L) ─────────────┬─────────────────────► Inverter AC IN (L)
+                       │ [Shore sensor GPIO21]
+Shore (N) ─────────────┴─────────────────────► Inverter AC IN (N)
+Shore (PE)──────────────────────────────────────► PE bus
 
-                                    Inverter AC OUT (L) ──[Output sensor GPIO22]──► L bus
-                                    Inverter AC OUT (N) ───────────────────────────► N bus
+                                    Inverter AC OUT (L) ──┬──────────────► L bus
+                                                          │ [Output sensor GPIO22]
+                                    Inverter AC OUT (N) ──┴──────────────► N bus
 
                     ┌─── [N-G Bond relay GPIO33] ────┐
-                    │    Camper N-G Bond              │
+                    │    Camper N-G Bond             │
                    N bus                            PE bus
                    (closed only when inverter generating)
 
@@ -135,11 +137,29 @@ The fridge is managed automatically by `logfridge.py` on the Raspberry Pi, which
 `logfridge.py` (`web2pyp3/applications/camp/private/logfridge.py`) runs as a 10-second polling loop on the Raspberry Pi. It:
 
 - Reads `RPM`, `INV_BTN`, `FRDRIVE_BTN` from memcache
+- Reads `BMSData` / `BMSTime` from memcache to evaluate RV battery SOC for the drive-mode guard
 - Reads `Camper Shore Power` and `Camper Inverter Output` from the ESP REST API (port 80)
-- Applies inverter desired-state sync and fridge power logic
+- Applies inverter desired-state sync and fridge power logic (including SOC guard in drive mode)
 - Writes `camp/shore_power`, `camp/inverter_output`, `camp/fridge_relay`, `camp/inverter_relay` to memcache for the web2py dashboard
 
 Configure the ESP IP/hostname via the `CAMPER_ESP_IP` environment variable (default: `camper.local`).
+
+Additional env vars controlling the SOC guard:
+
+| Variable | Default | Description |
+|---|---|---|
+| `SOC_DRIVE_THRESHOLD` | `50.0` | RV battery SOC % required to power fridge in drive mode |
+| `BMS_MAX_AGE_SECS` | `300` | Seconds before BMSData is treated as stale (guard bypassed) |
+
+### FRDRIVE Button Colour States
+
+The dashboard FRDRIVE button uses tri-state background colour:
+
+| Colour | Meaning |
+|---|---|
+| Green | Fridge is currently powered (from shore or inverter) |
+| Orange | Drive mode ON, but fridge not powered (engine stopped or SOC too low) |
+| Gray | Drive mode OFF, fridge not powered |
 
 
 

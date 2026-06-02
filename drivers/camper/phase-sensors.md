@@ -12,19 +12,20 @@ Two commercial optocoupler-based phase sensors detect AC phase presence at two m
 ## Wiring Diagram
 
 ```
-Shore power (L)                     Inverter output (L)
-      │                                     │
-      │                                     │
-┌─────┴──────┐                     ┌────────┴───────┐
-│  Phase     │                     │  Phase         │
-│  Sensor    │                     │  Sensor        │
-│  Module 1  │                     │  Module 2      │
-│ (opto)     │                     │ (opto)         │
-│            │                     │                │
-│  OUT ──────┼──── GPIO21          │  OUT ──────────┼──── GPIO22
-│  GND ──────┼──── GND             │  GND ──────────┼──── GND
-│  VCC ──────┼──── 3.3V            │  VCC ──────────┼──── 3.3V
-└────────────┘                     └────────────────┘
+Shore power (L) ──┐                  Inverter output (L) ──┐
+                  │                                        │
+         ┌────────┴─────┐                       ┌──────────┴─────┐
+         │   Phase      │                       │   Phase        │
+         │   Sensor     │                       │   Sensor       │
+         │   Module 1   │                       │   Module 2     │
+         │   (opto)     │                       │   (opto)       │
+         │              │                       │                │
+         │  OUT ────────┼───► GPIO21            │  OUT ──────────┼───► GPIO22
+         │  GND ────────┼───► GND               │  GND ──────────┼───► GND
+         │  VCC ────────┼───► 3.3V              │  VCC ──────────┼───► 3.3V
+         └────────┬─────┘                       └──────────┬─────┘
+                  │                                        │
+Shore power (N) ──┘                  Inverter output (N) ──┘
         ESP32 dev board
         ┌───────────────┐
         │ GPIO21        │◄── Shore power sensor OUT

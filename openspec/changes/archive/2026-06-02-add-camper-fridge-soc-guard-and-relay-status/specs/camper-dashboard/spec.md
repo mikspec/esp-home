@@ -1,3 +1,5 @@
+## MODIFIED Requirements
+
 ### Requirement: INV and FRDRIVE control buttons
 The camp dashboard SHALL expose two toggle buttons — INV and FRDRIVE — that write their state to memcache keys `INV_BTN` and `FRDRIVE_BTN` respectively via the `obd_save` endpoint. The FRIDGE button does not exist.
 
@@ -34,16 +36,7 @@ The button label (✓/✗) SHALL continue to reflect the drive-mode toggle state
 - **WHEN** `obd_stat` returns `frdrivebtn: 0` and `fridge_relay: 0`
 - **THEN** FRDRIVE button SHALL display with gray background
 
-### Requirement: Grid Power and Inverter Output indicators
-The camp dashboard SHALL display two read-only AC source indicators — GRID and INV_OUT — reflecting `camp/shore_power` and `camp/inverter_output` memcache values written by logfridge.py. Indicators SHALL be updated on each `obd_stat` poll (every 5 seconds).
-
-#### Scenario: Shore power present
-- **WHEN** `camp/shore_power` is 1 in memcache
-- **THEN** the GRID indicator SHALL display as active (highlighted)
-
-#### Scenario: No AC sources
-- **WHEN** both `camp/shore_power` and `camp/inverter_output` are 0 or absent
-- **THEN** both indicators SHALL display as inactive
+## ADDED Requirements
 
 ### Requirement: Fridge relay status in obd_stat response
 The `obd_stat` endpoint SHALL include a `fridge_relay` field (integer 1 or 0) in its JSON response, read from the `camp/fridge_relay` memcache key written by `logfridge.py`. When the key is absent, the value SHALL default to 0.

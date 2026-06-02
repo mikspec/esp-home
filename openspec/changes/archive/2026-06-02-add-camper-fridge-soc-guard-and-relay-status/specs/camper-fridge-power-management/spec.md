@@ -1,3 +1,5 @@
+## MODIFIED Requirements
+
 ### Requirement: Fridge power decision logic
 The system SHALL evaluate fridge power state every 10 seconds using the following logic: `fridge_on = power_present AND (shore_power OR (inv_btn AND NOT frdrive_btn) OR (inv_btn AND frdrive_btn AND rpm > 0 AND soc_ok))` where `power_present = shore_power OR inverter_output` and `soc_ok = True when BMS data is unavailable or stale, otherwise soc > SOC_DRIVE_THRESHOLD`. The FRIDGE button does not exist; INV_BTN governs whether the inverter is on and therefore whether fridge can be powered from it.
 
@@ -36,35 +38,7 @@ The system SHALL evaluate fridge power state every 10 seconds using the followin
 - **WHEN** INV_BTN is 0 and shore_power is OFF
 - **THEN** fridge switch SHALL be set to OFF
 
-### Requirement: Inverter desired-state synchronisation
-The system SHALL synchronise the ESP inverter switch to match the INV_BTN memcache value on each poll cycle, calling turn_on or turn_off only when the desired state differs from the current switch state.
-
-#### Scenario: INV_BTN set to 1, inverter currently off
-- **WHEN** INV_BTN is 1 in memcache
-- **AND** camper_inverter switch reports OFF
-- **THEN** the system SHALL call turn_on on the inverter switch
-
-#### Scenario: INV_BTN and inverter already in sync
-- **WHEN** INV_BTN matches current inverter switch state
-- **THEN** the system SHALL NOT issue any switch command to the ESP
-
-### Requirement: Sensor state mirrored to memcache
-The system SHALL write shore power and inverter output sensor states to memcache keys `camp/shore_power` and `camp/inverter_output` on each poll cycle so the web2py dashboard can display AC source status without direct ESP access.
-
-#### Scenario: Shore power sensor ON
-- **WHEN** camper_shore_power binary sensor reports ON
-- **THEN** `camp/shore_power` SHALL be set to 1 in memcache
-
-#### Scenario: ESP unreachable
-- **WHEN** the ESP REST API does not respond within the timeout
-- **THEN** the poll cycle SHALL be skipped with a warning log and memcache state SHALL NOT be updated
-
-### Requirement: Relay state mirrored to memcache
-The system SHALL write actual fridge and inverter relay states to memcache keys `camp/fridge_relay` and `camp/inverter_relay` after each sync cycle.
-
-#### Scenario: Fridge relay state written after sync
-- **WHEN** the fridge logic evaluation completes
-- **THEN** `camp/fridge_relay` SHALL reflect the resulting fridge switch state (1 = on, 0 = off)
+## ADDED Requirements
 
 ### Requirement: BMS SOC guard configuration
 The system SHALL read SOC threshold and BMS staleness window from environment variables `SOC_DRIVE_THRESHOLD` (default `50.0`, percent float) and `BMS_MAX_AGE_SECS` (default `300`, seconds int), following the same module-level constant pattern as `_POLL_INTERVAL` and `_ESP_BASE`.
