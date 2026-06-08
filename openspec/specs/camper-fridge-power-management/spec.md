@@ -1,40 +1,44 @@
 ### Requirement: Fridge power decision logic
-The system SHALL evaluate fridge power state every 10 seconds using the following logic: `fridge_on = power_present AND (shore_power OR (inv_btn AND NOT frdrive_btn) OR (inv_btn AND frdrive_btn AND rpm > 0 AND soc_ok))` where `power_present = shore_power OR inverter_output` and `soc_ok = True when BMS data is unavailable or stale, otherwise soc > SOC_DRIVE_THRESHOLD`. The FRIDGE button does not exist; INV_BTN governs whether the inverter is on and therefore whether fridge can be powered from it.
+The system SHALL evaluate fridge relay command and effective fridge power every 10 seconds using the following logic: `relay_on = (NOT power_present) OR shore_power OR (inv_btn AND NOT frdrive_btn) OR (inv_btn AND frdrive_btn AND rpm > 0 AND soc_ok)` and `fridge_powered = power_present AND relay_on`, where `power_present = shore_power OR inverter_output` and `soc_ok = True when BMS data is unavailable or stale, otherwise soc > SOC_DRIVE_THRESHOLD`. The FRIDGE button does not exist; INV_BTN governs whether the inverter is on and therefore whether fridge can be powered from it.
 
 #### Scenario: Shore power connected
 - **WHEN** shore power sensor reports ON
-- **THEN** fridge switch SHALL be set to ON (fridge powered) regardless of button states or RPM
+- **THEN** fridge switch SHALL be set to ON and effective fridge power SHALL be ON regardless of button states or RPM
 
 #### Scenario: Inverter on, drive mode off
 - **WHEN** INV_BTN is 1 and FRDRIVE_BTN is 0 (explicitly off)
 - **AND** power_present is true
-- **THEN** fridge switch SHALL be set to ON (no RPM or SOC condition)
+- **THEN** fridge switch SHALL be set to ON and effective fridge power SHALL be ON (no RPM or SOC condition)
 
 #### Scenario: Inverter on, drive mode on, engine running, SOC sufficient
 - **WHEN** INV_BTN is 1 and FRDRIVE_BTN is active (1 or default)
 - **AND** RPM is greater than 0
 - **AND** soc_ok is True (BMS unavailable, stale, or SOC > SOC_DRIVE_THRESHOLD)
 - **AND** power_present is true
-- **THEN** fridge switch SHALL be set to ON
+- **THEN** fridge switch SHALL be set to ON and effective fridge power SHALL be ON
 
 #### Scenario: Inverter on, drive mode on, engine running, SOC too low
 - **WHEN** INV_BTN is 1 and FRDRIVE_BTN is active
 - **AND** RPM is greater than 0
 - **AND** BMS data is fresh and SOC ≤ SOC_DRIVE_THRESHOLD
-- **THEN** fridge switch SHALL be set to OFF
+- **AND** power_present is true
+- **THEN** fridge switch SHALL be set to OFF and effective fridge power SHALL be OFF
 
 #### Scenario: Inverter on, drive mode on, engine not running
 - **WHEN** INV_BTN is 1 and FRDRIVE_BTN is active
 - **AND** RPM is 0 or unknown
-- **THEN** fridge switch SHALL be set to OFF
+- **AND** power_present is true
+- **THEN** fridge switch SHALL be set to OFF and effective fridge power SHALL be OFF
 
 #### Scenario: No AC power source available
 - **WHEN** shore_power is OFF and inverter_output is OFF
-- **THEN** fridge switch SHALL be set to OFF regardless of button states
+- **THEN** fridge switch SHALL be set to ON (relay de-energised) regardless of button states
+- **AND** effective fridge power SHALL be OFF
 
 #### Scenario: Inverter off, no shore power
 - **WHEN** INV_BTN is 0 and shore_power is OFF
-- **THEN** fridge switch SHALL be set to OFF
+- **AND** inverter_output is ON
+- **THEN** fridge switch SHALL be set to OFF and effective fridge power SHALL be OFF
 
 ### Requirement: Inverter desired-state synchronisation
 The system SHALL synchronise the ESP inverter switch to match the INV_BTN memcache value on each poll cycle, calling turn_on or turn_off only when the desired state differs from the current switch state.
@@ -59,12 +63,21 @@ The system SHALL write shore power and inverter output sensor states to memcache
 - **WHEN** the ESP REST API does not respond within the timeout
 - **THEN** the poll cycle SHALL be skipped with a warning log and memcache state SHALL NOT be updated
 
-### Requirement: Relay state mirrored to memcache
-The system SHALL write actual fridge and inverter relay states to memcache keys `camp/fridge_relay` and `camp/inverter_relay` after each sync cycle.
+### Requirement: Relay command and effective fridge power mirrored to memcache
+The system SHALL write actual fridge and inverter relay states to memcache keys `camp/fridge_relay` and `camp/inverter_relay` after each sync cycle. The system SHALL also write effective fridge power state to memcache key `camp/fridge_powered`.
 
 #### Scenario: Fridge relay state written after sync
 - **WHEN** the fridge logic evaluation completes
 - **THEN** `camp/fridge_relay` SHALL reflect the resulting fridge switch state (1 = on, 0 = off)
+
+#### Scenario: Effective fridge power written after sync
+- **WHEN** the fridge logic evaluation completes
+- **THEN** `camp/fridge_powered` SHALL reflect effective fridge power (1 = powered, 0 = not powered)
+
+#### Scenario: No AC source keeps relay on but fridge unpowered
+- **WHEN** shore_power is OFF and inverter_output is OFF
+- **THEN** `camp/fridge_relay` SHALL be 1
+- **AND** `camp/fridge_powered` SHALL be 0
 
 ### Requirement: BMS SOC guard configuration
 The system SHALL read SOC threshold and BMS staleness window from environment variables `SOC_DRIVE_THRESHOLD` (default `50.0`, percent float) and `BMS_MAX_AGE_SECS` (default `300`, seconds int), following the same module-level constant pattern as `_POLL_INTERVAL` and `_ESP_BASE`.

@@ -20,10 +20,10 @@ Having now espdriver which is able to manage inverted (switch inverter on/off) a
 
 The fridge relay uses NC (normally-closed) wiring: when the relay is off the fridge is powered. Control logic is applied by `logfridge.py` on the RPi:
 
-- When shore power is present, the fridge is always powered regardless of button state.
-- When the inverter is on (`INV` button) and `FRDRIVE` is **off** — fridge is powered without conditions.
-- When the inverter is on (`INV` button) and `FRDRIVE` is **on** — fridge is powered only while the engine is running (RPM > 0).
-- When the inverter is off and shore power is absent — fridge is not powered.
+- When shore power is present, the fridge relay path is enabled and effective fridge power is ON regardless of button state.
+- When the inverter is on (`INV` button) and `FRDRIVE` is **off** — relay path is enabled without RPM/SOC conditions.
+- When the inverter is on (`INV` button) and `FRDRIVE` is **on** — relay path is enabled only while the engine is running (RPM > 0) and SOC is allowed.
+- When no AC source is available (`shore_power = 0` and `inverter_output = 0`) — relay stays ON (de-energized NC path) but effective fridge power is OFF.
 
 `FRDRIVE` is **active by default**: on RPi restart, the drive-mode guard is on. The user must explicitly disable it to power the fridge unconditionally from the inverter.
 
@@ -32,11 +32,14 @@ power_present = shore_power OR inverter_output
 soc_ok = True  # if BMS data absent or stale (> BMS_MAX_AGE_SECS)
          OR soc > SOC_DRIVE_THRESHOLD
 
-fridge_on = power_present AND (
-    shore_power                                              # grid connected — always power fridge
-    OR (INV_BTN AND NOT FRDRIVE_BTN)                         # inverter, no drive mode — always power fridge
-    OR (INV_BTN AND FRDRIVE_BTN AND RPM > 0 AND soc_ok)      # inverter, drive mode — engine running + SOC OK
+relay_on = (
+    NOT power_present                                         # no AC source: keep relay de-energized
+    OR shore_power                                            # grid connected
+    OR (INV_BTN AND NOT FRDRIVE_BTN)                          # inverter, no drive mode
+    OR (INV_BTN AND FRDRIVE_BTN AND RPM > 0 AND soc_ok)       # inverter, drive mode
 )
+
+fridge_powered = power_present AND relay_on
 ```
 
 Environment variables controlling the SOC guard (set in the `logfridge.py` process environment):
@@ -54,17 +57,17 @@ Implemented in `logfridge.py` via `_get_soc_ok()` helper.
 
 ## Fridge management - fridge power relay status
 
-The FRDRIVE button uses tri-state background colour to show both drive-mode state and actual fridge relay status:
+The FRDRIVE button uses tri-state background colour to show both drive-mode state and effective fridge power:
 
 | Colour | Condition |
 |---|---|
-| Green (`#00aa00`) | `fridge_relay = 1` — fridge is powered (regardless of drive-mode state) |
+| Green (`#00aa00`) | `fridge_powered = 1` — fridge is effectively powered |
 | Orange (`#ff9600`) | Drive mode ON, fridge not powered (RPM or SOC condition not met) |
 | Gray (`#555`) | Drive mode OFF, fridge not powered |
 
 The button label (✓/✗) continues to reflect the drive-mode toggle independently of colour.
 
-Implemented: `obd_stat` returns `fridge_relay` from `camp/fridge_relay` memcache key; `index.html` `update()` applies tri-state logic.
+Implemented: `obd_stat` returns `fridge_relay` and `fridge_powered` from memcache keys `camp/fridge_relay` and `camp/fridge_powered`; `index.html` `update()` applies tri-state logic using `fridge_powered`.
 
 
 ## Simplification

@@ -6,13 +6,13 @@ The system SHALL expose exactly four relay outputs for the ESP32 relay X4_V1.1 n
 - **THEN** each relay channel SHALL be assigned to its fixed role with stable IDs and names
 
 ### Requirement: Role-specific startup and recovery behavior
-The system SHALL apply role-specific startup behavior: inverter relay MUST initialize off on boot via the internal GPIO switch (bypassing the safe-shutdown script), fridge relay SHALL initialize ON on boot (fridge powered by default), and spare relays MUST initialize off.
+The system SHALL apply role-specific startup behavior: inverter relay MUST initialize off on boot via the internal GPIO switch (bypassing the safe-shutdown script), fridge relay SHALL initialize ON on boot (relay de-energised, NC path closed), and spare relays MUST initialize off.
 
 #### Scenario: Device boots after power recovery
 - **WHEN** the ESP32 node starts after reboot or power interruption
 - **THEN** the inverter relay GPIO SHALL be turned off directly (not via the template switch)
 - **AND** spare relays SHALL be off
-- **AND** fridge relay SHALL be ON (fridge powered) so the fridge is live until logfridge.py re-evaluates within 10 seconds
+- **AND** fridge relay SHALL be ON (relay de-energised, NC path closed) until logfridge.py re-evaluates within 10 seconds
 - **AND** the safe shutdown script SHALL NOT be triggered during boot
 
 ### Requirement: Independent relay operation
@@ -41,11 +41,12 @@ When a turn-off command is issued to the inverter switch entity, the system SHAL
 - **THEN** the safe shutdown sequence SHALL execute transparently without requiring the caller to use a different endpoint or entity
 
 ### Requirement: Fridge relay GPIO semantics inverted
-The fridge relay GPIO pin SHALL be configured with `inverted: true` so that the ESPHome switch entity ON state corresponds to the relay de-energised (NC closed, fridge powered) and switch OFF state corresponds to relay energised (NO connected, fridge not powered). This makes the entity name semantically correct: switch ON = fridge powered.
+The fridge relay GPIO pin SHALL be configured with `inverted: true` so that the ESPHome switch entity ON state corresponds to relay de-energised (NC path closed) and switch OFF state corresponds to relay energised (NO connected, path open). Effective fridge power also depends on upstream AC source availability.
 
 #### Scenario: Fridge switch turned ON via Home Assistant or REST API
 - **WHEN** a turn-on command is issued to the Camper Fridge switch entity
-- **THEN** the fridge relay SHALL de-energise (NC closed) and the fridge SHALL receive power
+- **THEN** the fridge relay SHALL de-energise (NC path closed)
+- **AND** the fridge SHALL receive power only when an AC source is available
 
 #### Scenario: Fridge switch turned OFF via Home Assistant or REST API
 - **WHEN** a turn-off command is issued to the Camper Fridge switch entity

@@ -130,6 +130,8 @@ The fridge relay GPIO (GPIO26) is configured with `inverted: true` so that the E
 - **`Camper Fridge` switch ON** → GPIO LOW → relay de-energised → NC closed → fridge **powered**
 - **`Camper Fridge` switch OFF** → GPIO HIGH → relay energised → NO connected → fridge **not powered**
 
+Note: effective fridge power also depends on AC source availability (`shore_power` or `inverter_output`). In the no-AC case, relay ON means NC path closed but the fridge is still effectively unpowered.
+
 The fridge is managed automatically by `logfridge.py` on the Raspberry Pi, which applies context-aware power logic based on AC source state, engine RPM, and user button flags. See [fridge-power-managment.md](fridge-power-managment.md) for full logic description.
 
 ## RPi Integration
@@ -140,7 +142,7 @@ The fridge is managed automatically by `logfridge.py` on the Raspberry Pi, which
 - Reads `BMSData` / `BMSTime` from memcache to evaluate RV battery SOC for the drive-mode guard
 - Reads `Camper Shore Power` and `Camper Inverter Output` from the ESP REST API (port 80)
 - Applies inverter desired-state sync and fridge power logic (including SOC guard in drive mode)
-- Writes `camp/shore_power`, `camp/inverter_output`, `camp/fridge_relay`, `camp/inverter_relay` to memcache for the web2py dashboard
+- Writes `camp/shore_power`, `camp/inverter_output`, `camp/fridge_relay`, `camp/fridge_powered`, `camp/inverter_relay` to memcache for the web2py dashboard
 
 Configure the ESP IP/hostname via the `CAMPER_ESP_IP` environment variable (default: `camper.local`).
 
@@ -157,7 +159,7 @@ The dashboard FRDRIVE button uses tri-state background colour:
 
 | Colour | Meaning |
 |---|---|
-| Green | Fridge is currently powered (from shore or inverter) |
+| Green | Effective fridge power is ON (`fridge_powered = 1`) |
 | Orange | Drive mode ON, but fridge not powered (engine stopped or SOC too low) |
 | Gray | Drive mode OFF, fridge not powered |
 
