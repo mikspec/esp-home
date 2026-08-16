@@ -4,12 +4,7 @@ esphome:
   on_boot:
     priority: -100
     then:
-      # Keep safety-critical and unassigned channels off on restart.
-      # Target the internal GPIO switch directly to bypass the safe-shutdown script.
-      - switch.turn_off: camper_inverter_relay_gpio
-      - switch.turn_off: camper_ng_bond_relay
-      - switch.turn_off: camper_spare_2_relay
-      # Re-evaluate N-G bond after boot in case automation was enabled before reboot.
+      # Restore persisted relay state from flash, then re-evaluate automation interlocks.
       - script.execute: ng_bond_evaluate
 
 esp32:
@@ -19,6 +14,9 @@ esp32:
     advanced:
       minimum_chip_revision: "3.1"
       sram1_as_iram: true
+
+preferences:
+  flash_write_interval: 1s
 
 wifi:
   networks:
@@ -39,6 +37,7 @@ logger:
 api:
   encryption:
     key: !secret api_encryption_key
+  reboot_timeout: 0s   # <-- disables auto-reboot when HA is offline
 
 ota:
   - platform: esphome
@@ -53,13 +52,13 @@ switch:
     internal: true
     pin:
       number: GPIO25
-    restore_mode: ALWAYS_OFF
+    restore_mode: RESTORE_DEFAULT_OFF
 
   - platform: template
     id: camper_inverter_relay
     name: "Camper Inverter"
     optimistic: true
-    restore_mode: ALWAYS_OFF
+    restore_mode: RESTORE_DEFAULT_OFF
     turn_on_action:
       - switch.turn_on: camper_inverter_relay_gpio
     turn_off_action:
@@ -71,14 +70,14 @@ switch:
     pin:
       number: GPIO26
       inverted: true
-    restore_mode: ALWAYS_ON
+    restore_mode: RESTORE_DEFAULT_ON
 
   - platform: gpio
     id: camper_ng_bond_relay
     name: "Camper N-G Bond"
     pin:
       number: GPIO33
-    restore_mode: ALWAYS_OFF
+    restore_mode: RESTORE_DEFAULT_OFF
     on_turn_on:
       # Safety interlock: never allow the bond relay to be closed when shore power is present,
       # regardless of automation state or manual commands from Home Assistant.
@@ -93,7 +92,7 @@ switch:
     name: "Camper Spare Relay 2"
     pin:
       number: GPIO32
-    restore_mode: ALWAYS_OFF
+    restore_mode: RESTORE_DEFAULT_OFF
 
   - platform: template
     id: camper_ng_bond_auto
@@ -171,6 +170,9 @@ binary_sensor:
         input: true
         pullup: true
     device_class: power
+    filters:
+      - delayed_on: 100ms
+      - delayed_off: 100ms
     on_state:
       - script.execute: ng_bond_evaluate
 
@@ -184,5 +186,8 @@ binary_sensor:
         input: true
         pullup: true
     device_class: power
+    filters:
+      - delayed_on: 100ms
+      - delayed_off: 100ms
     on_state:
       - script.execute: ng_bond_evaluate
