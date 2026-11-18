@@ -32,8 +32,8 @@ logger:
 api:
   encryption:
     key: !secret api_encryption_key
-  services:
-    - service: gate_action
+  actions:
+    - action: gate_action
       variables:
         request_id: int
         action: string

@@ -32,8 +32,8 @@ logger:
 api:
   encryption:
     key: !secret api_encryption_key
-  services:
-    - service: irrigation_all_off
+  actions:
+    - action: irrigation_all_off
       then:
         - script.execute: all_off_without_notification
 
@@ -270,8 +270,8 @@ script:
     mode: restart
     then:
       - script.execute: all_off_without_notification
-      - homeassistant.service:
-          service: notify.all_phones
+      - homeassistant.action:
+          action: notify.all_phones
           data:
             title: "Irrigation safety stop"
             message: "Irrigation runtime exceeded max limit. All sections and pump were switched off."

@@ -30,8 +30,8 @@ logger:
 api:
   encryption:
     key: !secret api_encryption_key
-  services:
-    - service: carport_all_off
+  actions:
+    - action: carport_all_off
       then:
         - switch.turn_off: carport_plug_relay
         - switch.turn_off: carport_light_relay
